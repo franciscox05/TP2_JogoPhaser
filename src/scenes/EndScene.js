@@ -56,6 +56,7 @@ export class EndScene extends Phaser.Scene {
 
   update() {
     if (Phaser.Input.Keyboard.JustDown(this.restartKey)) {
+      this.registry.set("runState", { lives: 3, timeLeft: 180, keys: 0 });
       this.scene.start("MenuScene");
     }
   }
