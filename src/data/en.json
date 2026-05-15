@@ -1,0 +1,16 @@
+﻿{
+  "gameTitle": "Dungeon Escape",
+  "menuStart": "Press ENTER to start",
+  "menuLang": "Press E to change language",
+  "menuCurrentLang": "Language",
+  "hudLives": "Lives",
+  "hudTime": "Time",
+  "hudKey": "Key",
+  "hudKeyYes": "YES",
+  "hudKeyNo": "NO",
+  "winTitle": "Victory!",
+  "winSubtitle": "You escaped the dungeon.",
+  "loseTitle": "Game Over",
+  "loseSubtitle": "You got trapped in the dungeon.",
+  "restartHint": "Press R to restart"
+}
