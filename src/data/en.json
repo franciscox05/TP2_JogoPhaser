@@ -22,7 +22,7 @@
   "puzzleWordTitle": "Ritual Riddle",
   "puzzleWordPrompt": "Without me, LIFE stops. Type the word and ENTER",
   "puzzleSymbolTitle": "Arcane Seal",
-  "puzzleSymbolPrompt": "Symbol order: TRIANGLE-CIRCLE-SQUARE-STAR",
+  "puzzleSymbolPrompt": "Repeat the symbol order with numbers: 1-2-3-4",
   "puzzleInput": "Input",
   "puzzleSuccess": "Puzzle solved! Key released.",
   "puzzleFail": "Wrong answer. Try again.",
