@@ -2,8 +2,8 @@
 
 ## Branches
 - `main`: branch estavel, so recebe merge de funcionalidades testadas.
-- `feature/gameplay-core-francisco`: mecanicas principais e loop de jogo.
-- `feature/ui-i18n-audio-colega`: interface, internacionalizacao e multimédia.
+- `feature-gameplay-core-francisco`: mecanicas principais e loop de jogo.
+- `feature-ui-i18n-audio-afonso`: interface, internacionalizacao e multimédia.
 
 ## Pessoa A (Francisco) - Gameplay/Core
 1. Refinar mapa/jogabilidade top-down da masmorra.
@@ -11,7 +11,7 @@
 3. Sistema de objetivo (chaves, portas, vitoria/derrota).
 4. Balanceamento de dificuldade e reinicio.
 
-## Pessoa B (Colega) - UI/i18n/Audio
+## Pessoa B (Afonso) - UI/i18n/Audio
 1. Melhorar HUD e ecra de menu/game over/vitoria.
 2. Completar i18n PT/EN (e opcional terceira lingua).
 3. Integrar efeitos sonoros reais comprimidos (MP3/OGG).
