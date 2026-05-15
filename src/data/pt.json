@@ -1,0 +1,16 @@
+﻿{
+  "gameTitle": "Masmorra Escape",
+  "menuStart": "Pressiona ENTER para começar",
+  "menuLang": "Pressiona E para mudar idioma",
+  "menuCurrentLang": "Idioma",
+  "hudLives": "Vidas",
+  "hudTime": "Tempo",
+  "hudKey": "Chave",
+  "hudKeyYes": "SIM",
+  "hudKeyNo": "NÃO",
+  "winTitle": "Vitória!",
+  "winSubtitle": "Escapaste da masmorra.",
+  "loseTitle": "Game Over",
+  "loseSubtitle": "Ficaste preso na masmorra.",
+  "restartHint": "Pressiona R para reiniciar"
+}
