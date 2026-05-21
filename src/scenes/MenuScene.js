@@ -92,7 +92,7 @@ export class MenuScene extends Phaser.Scene {
     }
 
     if (Phaser.Input.Keyboard.JustDown(this.enterKey)) {
-      this.registry.set("runState", { lives: 3, timeLeft: 180, keys: 0 });
+      this.sound.play("engineStart"); // Toca o som do motor
       this.scene.start("Room1Scene");
     }
   }
