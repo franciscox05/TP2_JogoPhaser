@@ -1,0 +1,6 @@
+<svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+  <rect x="5" y="10" width="30" height="25" rx="4" fill="#f1c40f" />
+  <path d="M 10 10 L 15 2 L 25 2 L 25 10 Z" fill="#f39c12" />
+  <rect x="15" y="15" width="10" height="15" rx="2" fill="#e67e22" />
+  <text x="20" y="32" font-size="14" fill="#000" font-weight="bold" text-anchor="middle">G</text>
+</svg>

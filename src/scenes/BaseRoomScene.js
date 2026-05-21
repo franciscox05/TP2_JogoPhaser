@@ -7,20 +7,23 @@ export class BaseRoomScene extends Phaser.Scene {
   create() {
     this.createTextures();
     this.drawBackground();
-    this.physics.world.setBounds(20, 40, 920, 460);
+    this.physics.world.setBounds(20, 0, 920, 540); 
 
     this.state = this.registry.get("runState") || { lives: 3, timeLeft: 180, keys: 0 };
 
-    this.player = this.physics.add.sprite(90, 270, "playerTex").setDepth(8);
+    // Jogador (o teu Carro SVG)
+    this.player = this.physics.add.sprite(480, 450, "carroSprite").setDepth(8); 
     this.player.setCollideWorldBounds(true);
 
     this.walls = this.physics.add.staticGroup();
     this.keys = this.physics.add.staticGroup();
     this.createRoomLayout();
 
-    this.puzzleObject = this.physics.add.staticSprite(430, 270, this.cfg.objectTex).setDepth(7);
+    // Mudamos o X para 880 (berma da direita) e a textura para a gasolina
+    this.puzzleObject = this.physics.add.staticSprite(880, 270, "gasolinaSprite").setDepth(7);
     this.keyItem = null;
 
+    // Inimigos (os Táxis)
     this.enemies = this.physics.add.group();
     this.createEnemies();
 
@@ -30,6 +33,7 @@ export class BaseRoomScene extends Phaser.Scene {
     this.physics.add.overlap(this.player, this.keys, this.onCollectKey, null, this);
     this.physics.add.overlap(this.player, this.enemies, this.onEnemyHit, null, this);
 
+    // Controlos
     this.cursors = this.input.keyboard.createCursorKeys();
     this.wasd = this.input.keyboard.addKeys("W,A,S,D");
     this.interactKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
@@ -48,6 +52,7 @@ export class BaseRoomScene extends Phaser.Scene {
     this.createPuzzleOverlay();
     this.refreshHud();
 
+    // Temporizador do jogo
     this.timer = this.time.addEvent({
       delay: 1000,
       loop: true,
@@ -69,8 +74,6 @@ export class BaseRoomScene extends Phaser.Scene {
     if (this.textures.exists("wallTex")) return;
     const g = this.add.graphics();
     g.fillStyle(0x5b402d, 1); g.fillRoundedRect(0, 0, 40, 40, 3); g.fillStyle(0x7a5638, 1); g.fillRect(0, 0, 40, 5); g.fillRect(0, 20, 40, 4); g.generateTexture("wallTex", 40, 40); g.clear();
-    g.fillStyle(0xf2b46f, 1); g.fillCircle(14, 14, 14); g.fillStyle(0x6d3a1f, 1); g.fillCircle(14, 14, 5); g.generateTexture("playerTex", 28, 28); g.clear();
-    g.fillStyle(0x5f1f1f, 1); g.fillRoundedRect(0, 0, 28, 28, 6); g.fillStyle(0xc05858, 1); g.fillRoundedRect(4, 4, 20, 20, 4); g.generateTexture("enemyTex", 28, 28); g.clear();
     g.fillStyle(0xd6ab3d, 1); g.fillCircle(11, 11, 11); g.fillStyle(0x6b4e1a, 1); g.fillRect(10, 4, 12, 4); g.generateTexture("keyTex", 24, 24); g.clear();
     g.fillStyle(0x5e3f2a, 1); g.fillRoundedRect(0, 0, 34, 88, 5); g.fillStyle(0x8b633d, 1); g.fillRect(15, 24, 4, 44); g.generateTexture("doorTex", 34, 88); g.clear();
     g.fillStyle(0x2f5d2f, 1); g.fillRoundedRect(0, 0, 40, 92, 6); g.fillStyle(0x9aca6d, 1); g.fillRect(18, 32, 4, 24); g.generateTexture("finalDoorTex", 40, 92); g.clear();
@@ -81,25 +84,32 @@ export class BaseRoomScene extends Phaser.Scene {
 
   drawBackground() {
     const g = this.add.graphics();
-    g.fillGradientStyle(0x2f1f16, 0x2f1f16, 0x4a3021, 0x4a3021, 1); g.fillRect(0, 0, 960, 540);
-    g.fillStyle(0x6c4a31, 0.85);
-    for (let y = 45; y < 500; y += 40) for (let x = 20; x < 940; x += 40) g.fillRect(x, y, 38, 38);
-    g.fillStyle(0x090706, 0.22); g.fillRect(20, 40, 920, 460);
+    g.fillStyle(0x222222, 1); 
+    g.fillRect(0, 0, 960, 540);
+    
+    // Grupo das linhas brancas da estrada
+    this.roadLines = this.add.group();
+    for (let i = 0; i < 7; i++) {
+      let line = this.add.rectangle(480, i * 100, 15, 60, 0xffffff).setDepth(1);
+      this.roadLines.add(line);
+    }
   }
 
   createRoomLayout() {
-    for (let x = 40; x <= 920; x += 40) { this.walls.create(x, 40, "wallTex"); this.walls.create(x, 500, "wallTex"); }
-    for (let y = 80; y <= 460; y += 40) { this.walls.create(20, y, "wallTex"); this.walls.create(940, y, "wallTex"); }
-    this.exitDoor = this.physics.add.staticSprite(900, 270, this.cfg.final ? "finalDoorTex" : "doorTex").setDepth(7);
+    for (let y = 0; y <= 540; y += 40) { 
+      this.walls.create(20, y, "wallTex"); 
+      this.walls.create(940, y, "wallTex"); 
+    }
+    
+    // Agora é uma linha de meta, larga e bem posicionada!
+    this.exitDoor = this.physics.add.staticSprite(480, 50, "metaSprite").setDepth(7);
     if (!this.cfg.final) this.walls.add(this.exitDoor);
   }
 
   createEnemies() {
     this.cfg.enemies.forEach((e) => {
-      const enemy = this.enemies.create(e.x, e.y, "enemyTex");
-      if (e.vx) enemy.setVelocityX(e.vx);
-      if (e.vy) enemy.setVelocityY(e.vy);
-      enemy.setBounce(1, 1).setCollideWorldBounds(true);
+      const enemy = this.enemies.create(e.x, e.y, "taxiSprite");
+      enemy.setImmovable(true);
     });
   }
 
@@ -166,7 +176,7 @@ export class BaseRoomScene extends Phaser.Scene {
     if (this.hitCooldown || this.puzzleOpen) return;
     this.hitCooldown = true;
     this.state.lives -= 1;
-    this.player.setPosition(90, 270);
+    this.player.setPosition(480, 450); 
     this.player.setTint(0xff0000);
     this.time.delayedCall(250, () => { this.player.clearTint(); this.hitCooldown = false; });
     this.refreshHud();
@@ -191,6 +201,27 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   update() {
+    const roadSpeed = 4 + (this.state.keys * 2.5);
+
+    // Movimentação do fundo e inimigos
+    if (!this.puzzleOpen && this.roadLines) {
+      this.roadLines.getChildren().forEach(line => {
+        line.y += roadSpeed; 
+        if (line.y > 600) line.y = -50; 
+      });
+
+      if (this.enemies) {
+        this.enemies.getChildren().forEach(taxi => {
+          taxi.y += roadSpeed; 
+          
+          if (taxi.y > 600) {
+            taxi.y = -80; 
+            taxi.x = Phaser.Math.Between(60, 900); 
+          }
+        });
+      }
+    }
+
     if (Phaser.Input.Keyboard.JustDown(this.langKey)) {
       const c = this.registry.get("lang") || "pt";
       this.registry.set("lang", c === "pt" ? "en" : "pt");
@@ -225,6 +256,7 @@ export class BaseRoomScene extends Phaser.Scene {
       }
     }
 
+    // Movimentação do jogador
     const speed = 180;
     let vx = 0, vy = 0;
     if (this.cursors.left.isDown || this.wasd.A.isDown) vx = -speed;
