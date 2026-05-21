@@ -1,6 +1,8 @@
-﻿import { BootScene } from "./scenes/BootScene.js";
+import { BootScene } from "./scenes/BootScene.js";
 import { MenuScene } from "./scenes/MenuScene.js";
-import { GameScene } from "./scenes/GameScene.js";
+import { Room1Scene } from "./scenes/Room1Scene.js";
+import { Room2Scene } from "./scenes/Room2Scene.js";
+import { Room3Scene } from "./scenes/Room3Scene.js";
 import { EndScene } from "./scenes/EndScene.js";
 
 const config = {
@@ -15,7 +17,7 @@ const config = {
       debug: false
     }
   },
-  scene: [BootScene, MenuScene, GameScene, EndScene]
+  scene: [BootScene, MenuScene, Room1Scene, Room2Scene, Room3Scene, EndScene]
 };
 
 new Phaser.Game(config);
