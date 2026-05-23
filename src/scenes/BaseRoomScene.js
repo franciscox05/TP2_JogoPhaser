@@ -28,6 +28,7 @@ export class BaseRoomScene extends Phaser.Scene {
 
     this.obstacles = this.physics.add.group();
     this.coins = this.physics.add.group();
+    this.lifePickups = this.physics.add.group();
 
     this.leftKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT);
     this.rightKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT);
@@ -43,12 +44,15 @@ export class BaseRoomScene extends Phaser.Scene {
     this.physics.add.collider(this.player, this.trackWalls);
     this.physics.add.overlap(this.player, this.obstacles, this.onHitObstacle, null, this);
     this.physics.add.overlap(this.player, this.coins, this.onCollectCoin, null, this);
+    this.physics.add.overlap(this.player, this.lifePickups, this.onCollectLife, null, this);
 
     this.createHud();
     this.updateHud();
 
     this.lastObstacleSpawn = 0;
     this.lastCoinSpawn = 0;
+    this.lastLifeSpawnTime = 0;
+    this.activeLifePickup = null;
 
     this.gameTimer = this.time.addEvent({
       delay: 100,
@@ -99,6 +103,16 @@ export class BaseRoomScene extends Phaser.Scene {
       const l2 = this.add.rectangle(564, y + 45, 6, 45, 0xffffff).setAlpha(0.65);
       this.roadLines.add(l1);
       this.roadLines.add(l2);
+    }
+
+    if (!this.textures.exists("lifeSprite")) {
+      g.clear();
+      g.fillStyle(0xe74c3c, 1);
+      g.fillCircle(14, 14, 14);
+      g.fillStyle(0xffffff, 1);
+      g.fillRect(12, 5, 4, 18);
+      g.fillRect(5, 12, 18, 4);
+      g.generateTexture("lifeSprite", 28, 28);
     }
   }
 
@@ -289,6 +303,39 @@ export class BaseRoomScene extends Phaser.Scene {
     this.updateHud();
   }
 
+  onCollectLife(_player, life) {
+    life.destroy();
+    this.activeLifePickup = null;
+    this.state.lives = Math.min(3, this.state.lives + 1);
+    this.centerHint.setText(this.t("lifeCollected"));
+    this.time.delayedCall(600, () => {
+      if (!this.levelFinished && !this.isPaused) this.centerHint.setText(`${this.t("targetScore")}: ${this.cfg.targetScore}`);
+    });
+    this.updateHud();
+  }
+
+  trySpawnLifePickup(now) {
+    if (this.state.lives !== 1) return;
+    if (this.activeLifePickup && this.activeLifePickup.active) return;
+    if (now - this.lastLifeSpawnTime < this.cfg.lifeRespawnDelay) return;
+
+    const order = Phaser.Utils.Array.Shuffle([0, 1, 2]);
+    const lane = order.find((idx) => this.hasLaneSpace(this.obstacles, idx, 220) && this.hasLaneSpace(this.coins, idx, 160));
+    if (lane === undefined) return;
+
+    const life = this.lifePickups.create(this.lanes[lane], -36, "lifeSprite").setDepth(8);
+    life.body.setSize(24, 24).setOffset(2, 2);
+    life.setData("speed", Math.max(170, this.getObstacleSpeed() - 70));
+    life.setData("spawnTime", now);
+
+    this.activeLifePickup = life;
+    this.lastLifeSpawnTime = now;
+    this.centerHint.setText(this.t("lifeAppeared"));
+    this.time.delayedCall(800, () => {
+      if (!this.levelFinished && !this.isPaused && this.state.lives === 1) this.centerHint.setText(`${this.t("targetScore")}: ${this.cfg.targetScore}`);
+    });
+  }
+
   finishLevel() {
     this.levelFinished = true;
     this.obstacles.clear(true, true);
@@ -403,6 +450,7 @@ export class BaseRoomScene extends Phaser.Scene {
         this.lastCoinSpawn = now;
         this.spawnCoin();
       }
+      this.trySpawnLifePickup(now);
 
       this.obstacles.getChildren().forEach((obstacle) => {
         obstacle.y += obstacle.getData("speed") * 0.016;
@@ -412,6 +460,15 @@ export class BaseRoomScene extends Phaser.Scene {
       this.coins.getChildren().forEach((coin) => {
         coin.y += coin.getData("speed") * 0.016;
         if (coin.y > 620) coin.destroy();
+      });
+
+      this.lifePickups.getChildren().forEach((life) => {
+        life.y += life.getData("speed") * 0.016;
+        const livedFor = now - life.getData("spawnTime");
+        if (life.y > 620 || livedFor > this.cfg.lifeVisibleMs) {
+          if (this.activeLifePickup === life) this.activeLifePickup = null;
+          life.destroy();
+        }
       });
     }
   }
