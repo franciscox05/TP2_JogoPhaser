@@ -13,7 +13,10 @@ export class Room3Scene extends BaseRoomScene {
       phaseSpeedBoost: 95,
       baseSpawnDelay: 760,
       coinSpawnDelay: 1100,
-      coinScore: 75
+      coinScore: 75,
+      fuelDrainPerTick: 0.33,
+      coinFuelBonus: 6,
+      hitFuelPenalty: 20
     });
   }
 }

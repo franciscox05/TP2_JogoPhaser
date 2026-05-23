@@ -13,7 +13,10 @@ export class Room2Scene extends BaseRoomScene {
       phaseSpeedBoost: 80,
       baseSpawnDelay: 860,
       coinSpawnDelay: 1200,
-      coinScore: 60
+      coinScore: 60,
+      fuelDrainPerTick: 0.27,
+      coinFuelBonus: 7,
+      hitFuelPenalty: 17
     });
   }
 }
