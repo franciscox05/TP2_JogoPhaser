@@ -12,6 +12,7 @@ export class BaseRoomScene extends Phaser.Scene {
       score: 0,
       phase: 1,
       level: 1,
+      fuel: 100,
       elapsed: 0
     };
 
@@ -33,9 +34,11 @@ export class BaseRoomScene extends Phaser.Scene {
     this.aKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
     this.dKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
     this.langKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.L);
+    this.pauseKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.P);
 
     this.hitCooldown = false;
     this.levelFinished = false;
+    this.isPaused = false;
 
     this.physics.add.collider(this.player, this.trackWalls);
     this.physics.add.overlap(this.player, this.obstacles, this.onHitObstacle, null, this);
@@ -51,10 +54,18 @@ export class BaseRoomScene extends Phaser.Scene {
       delay: 100,
       loop: true,
       callback: () => {
-        if (this.levelFinished) return;
+        if (this.levelFinished || this.isPaused) return;
 
         this.state.elapsed += 0.1;
         this.state.score += 1;
+        this.state.fuel = Math.max(0, this.state.fuel - this.cfg.fuelDrainPerTick);
+
+        if (this.state.fuel <= 0) {
+          this.centerHint.setText(this.t("fuelEmpty"));
+          this.endRun(false);
+          return;
+        }
+
         this.updatePhaseByScore();
         this.updateHud();
 
@@ -70,21 +81,17 @@ export class BaseRoomScene extends Phaser.Scene {
     g.fillStyle(0x2f2f2f, 1);
     g.fillRect(0, 0, 960, 540);
 
-    // Estrada
     g.fillStyle(0x1d1d1d, 1);
     g.fillRect(220, 0, 520, 540);
 
-    // Bermas
     g.fillStyle(0x3f3f3f, 1);
     g.fillRect(220, 0, 20, 540);
     g.fillRect(720, 0, 20, 540);
 
-    // Linhas separadoras das 3 pistas
     g.fillStyle(0xffffff, 0.3);
     g.fillRect(392, 0, 8, 540);
     g.fillRect(560, 0, 8, 540);
 
-    // Linhas tracejadas animadas
     this.roadLines = this.add.group();
     for (let i = 0; i < 8; i += 1) {
       const y = i * 90;
@@ -107,11 +114,11 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   createHud() {
-    const panel = this.add.rectangle(210, 38, 390, 58, 0x000000, 0.45).setDepth(30);
+    const panel = this.add.rectangle(250, 38, 470, 58, 0x000000, 0.45).setDepth(30);
     panel.setStrokeStyle(1, 0x999999, 0.8);
 
     this.hudText = this.add.text(20, 20, "", {
-      fontSize: "18px",
+      fontSize: "17px",
       color: "#f5f5f5"
     }).setDepth(31);
 
@@ -126,6 +133,13 @@ export class BaseRoomScene extends Phaser.Scene {
       backgroundColor: "#000000",
       padding: { left: 10, right: 10, top: 4, bottom: 4 }
     }).setOrigin(0.5).setDepth(31).setAlpha(0.85);
+
+    this.pauseOverlay = this.add.rectangle(480, 270, 960, 540, 0x000000, 0.45).setDepth(60).setVisible(false);
+    this.pauseText = this.add.text(480, 270, this.t("paused"), {
+      fontSize: "52px",
+      color: "#ffffff",
+      fontStyle: "bold"
+    }).setOrigin(0.5).setDepth(61).setVisible(false);
   }
 
   t(k) {
@@ -134,12 +148,13 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   updateHud() {
+    const fuelRounded = Math.round(this.state.fuel);
     this.hudText.setText(
-      `${this.t("hudLives")}: ${this.state.lives}   ${this.t("hudScore")}: ${this.state.score}   ${this.t("hudPhase")}: ${this.state.phase}   ${this.t("hudRoom")}: ${this.cfg.roomNumber}`
+      `${this.t("hudLives")}: ${this.state.lives}   ${this.t("hudFuel")}: ${fuelRounded}%   ${this.t("hudScore")}: ${this.state.score}   ${this.t("hudPhase")}: ${this.state.phase}   ${this.t("hudRoom")}: ${this.cfg.roomNumber}`
     );
-    this.infoText.setText("A/LEFT e D/RIGHT para trocar de pista | L idioma");
+    this.infoText.setText("A/LEFT e D/RIGHT pista | P pausa | L idioma");
 
-    if (!this.levelFinished) {
+    if (!this.levelFinished && !this.isPaused) {
       this.centerHint.setText(`${this.t("targetScore")}: ${this.cfg.targetScore}`);
     }
   }
@@ -153,7 +168,7 @@ export class BaseRoomScene extends Phaser.Scene {
       this.state.phase = nextPhase;
       this.centerHint.setText(`${this.t("phaseUp")} ${nextPhase}`);
       this.time.delayedCall(1200, () => {
-        if (!this.levelFinished) this.centerHint.setText(`${this.t("targetScore")}: ${this.cfg.targetScore}`);
+        if (!this.levelFinished && !this.isPaused) this.centerHint.setText(`${this.t("targetScore")}: ${this.cfg.targetScore}`);
       });
     }
   }
@@ -187,6 +202,7 @@ export class BaseRoomScene extends Phaser.Scene {
     obstacle.destroy();
 
     this.state.lives -= 1;
+    this.state.fuel = Math.max(0, this.state.fuel - this.cfg.hitFuelPenalty);
     this.player.setTint(0xff4d4d);
     this.cameras.main.shake(120, 0.007);
     this.centerHint.setText(this.t("hitObstacle"));
@@ -194,12 +210,12 @@ export class BaseRoomScene extends Phaser.Scene {
     this.time.delayedCall(260, () => {
       this.player.clearTint();
       this.hitCooldown = false;
-      if (!this.levelFinished) this.centerHint.setText(`${this.t("targetScore")}: ${this.cfg.targetScore}`);
+      if (!this.levelFinished && !this.isPaused) this.centerHint.setText(`${this.t("targetScore")}: ${this.cfg.targetScore}`);
     });
 
     this.updateHud();
 
-    if (this.state.lives <= 0) {
+    if (this.state.lives <= 0 || this.state.fuel <= 0) {
       this.endRun(false);
     }
   }
@@ -207,9 +223,10 @@ export class BaseRoomScene extends Phaser.Scene {
   onCollectCoin(_player, coin) {
     coin.destroy();
     this.state.score += this.cfg.coinScore;
+    this.state.fuel = Math.min(100, this.state.fuel + this.cfg.coinFuelBonus);
     this.centerHint.setText(this.t("coinCollected"));
-    this.time.delayedCall(400, () => {
-      if (!this.levelFinished) this.centerHint.setText(`${this.t("targetScore")}: ${this.cfg.targetScore}`);
+    this.time.delayedCall(500, () => {
+      if (!this.levelFinished && !this.isPaused) this.centerHint.setText(`${this.t("targetScore")}: ${this.cfg.targetScore}`);
     });
     this.updatePhaseByScore();
     this.updateHud();
@@ -224,7 +241,9 @@ export class BaseRoomScene extends Phaser.Scene {
 
     this.registry.set("runState", {
       ...this.state,
-      level: this.cfg.roomNumber
+      level: this.cfg.roomNumber,
+      phase: 1,
+      fuel: Math.max(35, this.state.fuel)
     });
 
     this.time.delayedCall(1000, () => {
@@ -238,11 +257,16 @@ export class BaseRoomScene extends Phaser.Scene {
 
   endRun(victory) {
     this.registry.set("runState", this.state);
-    this.scene.start("EndScene", { victory, score: this.state.score, phase: this.state.phase });
+    this.scene.start("EndScene", {
+      victory,
+      score: this.state.score,
+      phase: this.state.phase,
+      level: this.cfg.roomNumber
+    });
   }
 
   tryMoveLane(dir) {
-    if (this.levelFinished) return;
+    if (this.levelFinished || this.isPaused) return;
     const nextLane = Phaser.Math.Clamp(this.currentLane + dir, 0, 2);
     if (nextLane === this.currentLane) return;
 
@@ -256,12 +280,28 @@ export class BaseRoomScene extends Phaser.Scene {
     });
   }
 
+  togglePause() {
+    if (this.levelFinished) return;
+    this.isPaused = !this.isPaused;
+    this.physics.world.isPaused = this.isPaused;
+    this.pauseOverlay.setVisible(this.isPaused);
+    this.pauseText.setVisible(this.isPaused);
+    if (!this.isPaused) this.updateHud();
+  }
+
   update() {
     if (Phaser.Input.Keyboard.JustDown(this.langKey)) {
       const c = this.registry.get("lang") || "pt";
       this.registry.set("lang", c === "pt" ? "en" : "pt");
+      this.pauseText.setText(this.t("paused"));
       this.updateHud();
     }
+
+    if (Phaser.Input.Keyboard.JustDown(this.pauseKey)) {
+      this.togglePause();
+    }
+
+    if (this.isPaused) return;
 
     if (Phaser.Input.Keyboard.JustDown(this.leftKey) || Phaser.Input.Keyboard.JustDown(this.aKey)) this.tryMoveLane(-1);
     if (Phaser.Input.Keyboard.JustDown(this.rightKey) || Phaser.Input.Keyboard.JustDown(this.dKey)) this.tryMoveLane(1);

@@ -17,7 +17,7 @@ export class BootScene extends Phaser.Scene {
   create() {
     this.registry.set("lang", "pt");
     this.registry.set("i18n", { pt, en });
-    this.registry.set("runState", { lives: 3, score: 0, phase: 1, level: 1, elapsed: 0 });
+    this.registry.set("runState", { lives: 3, score: 0, phase: 1, level: 1, fuel: 100, elapsed: 0 });
     this.scene.start("MenuScene");
   }
 }
