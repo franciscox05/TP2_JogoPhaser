@@ -5,64 +5,127 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   create() {
-    this.createTextures();
-    this.drawBackground();
-    this.physics.world.setBounds(20, 0, 920, 540); 
+    this.physics.world.setBounds(20, 0, 920, 540);
 
-    this.state = this.registry.get("runState") || { lives: 3, timeLeft: 180, keys: 0 };
+    this.state = this.registry.get("runState") || {
+      lives: 3,
+      score: 0,
+      phase: 1,
+      level: 1,
+      elapsed: 0
+    };
 
-    // Jogador (o teu Carro SVG)
-    this.player = this.physics.add.sprite(480, 450, "carroSprite").setDepth(8); 
+    this.lanes = [300, 480, 660];
+    this.currentLane = 1;
+
+    this.createTrackBackground();
+    this.createTrackLimits();
+
+    this.player = this.physics.add.sprite(this.lanes[this.currentLane], 450, "carroSprite").setDepth(10);
     this.player.setCollideWorldBounds(true);
+    this.player.body.setSize(60, 115).setOffset(20, 8);
 
-    this.walls = this.physics.add.staticGroup();
-    this.keys = this.physics.add.staticGroup();
-    this.createRoomLayout();
+    this.obstacles = this.physics.add.group();
+    this.coins = this.physics.add.group();
 
-    // Mudamos o X para 880 (berma da direita) e a textura para a gasolina
-    this.puzzleObject = this.physics.add.staticSprite(880, 270, "gasolinaSprite").setDepth(7);
-    this.keyItem = null;
-
-    // Inimigos (os Táxis)
-    this.enemies = this.physics.add.group();
-    this.createEnemies();
-
-    this.physics.add.collider(this.player, this.walls);
-    this.physics.add.collider(this.enemies, this.walls);
-    this.physics.add.collider(this.enemies, this.enemies);
-    this.physics.add.overlap(this.player, this.keys, this.onCollectKey, null, this);
-    this.physics.add.overlap(this.player, this.enemies, this.onEnemyHit, null, this);
-
-    // Controlos
-    this.cursors = this.input.keyboard.createCursorKeys();
-    this.wasd = this.input.keyboard.addKeys("W,A,S,D");
-    this.interactKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+    this.leftKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT);
+    this.rightKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT);
+    this.aKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
+    this.dKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
     this.langKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.L);
-    this.enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
-    this.backspaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.BACKSPACE);
-    this.escapeKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
-    this.typeKeys = this.input.keyboard.addKeys("ZERO,ONE,TWO,THREE,FOUR,FIVE,SIX,SEVEN,EIGHT,NINE,V,I,D,A");
 
     this.hitCooldown = false;
-    this.puzzleSolved = false;
-    this.puzzleOpen = false;
-    this.puzzleInput = "";
+    this.levelFinished = false;
+
+    this.physics.add.collider(this.player, this.trackWalls);
+    this.physics.add.overlap(this.player, this.obstacles, this.onHitObstacle, null, this);
+    this.physics.add.overlap(this.player, this.coins, this.onCollectCoin, null, this);
 
     this.createHud();
-    this.createPuzzleOverlay();
-    this.refreshHud();
+    this.updateHud();
 
-    // Temporizador do jogo
-    this.timer = this.time.addEvent({
-      delay: 1000,
+    this.lastObstacleSpawn = 0;
+    this.lastCoinSpawn = 0;
+
+    this.gameTimer = this.time.addEvent({
+      delay: 100,
       loop: true,
       callback: () => {
-        if (this.puzzleOpen) return;
-        this.state.timeLeft -= 1;
-        this.refreshHud();
-        if (this.state.timeLeft <= 0) this.endRun(false);
+        if (this.levelFinished) return;
+
+        this.state.elapsed += 0.1;
+        this.state.score += 1;
+        this.updatePhaseByScore();
+        this.updateHud();
+
+        if (this.state.score >= this.cfg.targetScore) {
+          this.finishLevel();
+        }
       }
     });
+  }
+
+  createTrackBackground() {
+    const g = this.add.graphics();
+    g.fillStyle(0x2f2f2f, 1);
+    g.fillRect(0, 0, 960, 540);
+
+    // Estrada
+    g.fillStyle(0x1d1d1d, 1);
+    g.fillRect(220, 0, 520, 540);
+
+    // Bermas
+    g.fillStyle(0x3f3f3f, 1);
+    g.fillRect(220, 0, 20, 540);
+    g.fillRect(720, 0, 20, 540);
+
+    // Linhas separadoras das 3 pistas
+    g.fillStyle(0xffffff, 0.3);
+    g.fillRect(392, 0, 8, 540);
+    g.fillRect(560, 0, 8, 540);
+
+    // Linhas tracejadas animadas
+    this.roadLines = this.add.group();
+    for (let i = 0; i < 8; i += 1) {
+      const y = i * 90;
+      const l1 = this.add.rectangle(396, y, 6, 45, 0xffffff).setAlpha(0.65);
+      const l2 = this.add.rectangle(564, y + 45, 6, 45, 0xffffff).setAlpha(0.65);
+      this.roadLines.add(l1);
+      this.roadLines.add(l2);
+    }
+  }
+
+  createTrackLimits() {
+    this.trackWalls = this.physics.add.staticGroup();
+
+    for (let y = 0; y <= 560; y += 40) {
+      this.trackWalls.create(220, y, "metaSprite").setScale(0.001).refreshBody();
+      this.trackWalls.create(740, y, "metaSprite").setScale(0.001).refreshBody();
+    }
+
+    this.finishLine = this.add.rectangle(480, 70, 520, 16, 0x2ea043).setDepth(3).setAlpha(0.35);
+  }
+
+  createHud() {
+    const panel = this.add.rectangle(210, 38, 390, 58, 0x000000, 0.45).setDepth(30);
+    panel.setStrokeStyle(1, 0x999999, 0.8);
+
+    this.hudText = this.add.text(20, 20, "", {
+      fontSize: "18px",
+      color: "#f5f5f5"
+    }).setDepth(31);
+
+    this.infoText = this.add.text(20, 48, "", {
+      fontSize: "14px",
+      color: "#d4d4d4"
+    }).setDepth(31);
+
+    this.centerHint = this.add.text(480, 510, "", {
+      fontSize: "18px",
+      color: "#ffffff",
+      backgroundColor: "#000000",
+      padding: { left: 10, right: 10, top: 4, bottom: 4 }
+    }).setOrigin(0.5).setDepth(31).setAlpha(0.85);
   }
 
   t(k) {
@@ -70,199 +133,166 @@ export class BaseRoomScene extends Phaser.Scene {
     return (this.registry.get("i18n")[l] || {})[k] ?? k;
   }
 
-  createTextures() {
-    if (this.textures.exists("wallTex")) return;
-    const g = this.add.graphics();
-    g.fillStyle(0x5b402d, 1); g.fillRoundedRect(0, 0, 40, 40, 3); g.fillStyle(0x7a5638, 1); g.fillRect(0, 0, 40, 5); g.fillRect(0, 20, 40, 4); g.generateTexture("wallTex", 40, 40); g.clear();
-    g.fillStyle(0xd6ab3d, 1); g.fillCircle(11, 11, 11); g.fillStyle(0x6b4e1a, 1); g.fillRect(10, 4, 12, 4); g.generateTexture("keyTex", 24, 24); g.clear();
-    g.fillStyle(0x5e3f2a, 1); g.fillRoundedRect(0, 0, 34, 88, 5); g.fillStyle(0x8b633d, 1); g.fillRect(15, 24, 4, 44); g.generateTexture("doorTex", 34, 88); g.clear();
-    g.fillStyle(0x2f5d2f, 1); g.fillRoundedRect(0, 0, 40, 92, 6); g.fillStyle(0x9aca6d, 1); g.fillRect(18, 32, 4, 24); g.generateTexture("finalDoorTex", 40, 92); g.clear();
-    g.fillStyle(0x7a4b25, 1); g.fillRoundedRect(0, 0, 48, 30, 4); g.fillStyle(0x3d2412, 1); g.fillRect(0, 22, 48, 8); g.generateTexture("chestTex", 48, 30); g.clear();
-    g.fillStyle(0x8a8a8a, 1); g.fillRoundedRect(0, 0, 30, 30, 3); g.fillStyle(0x404040, 1); g.fillCircle(15, 15, 6); g.generateTexture("riddleTex", 30, 30); g.clear();
-    g.fillStyle(0xff3ad8, 1); g.fillCircle(16, 16, 14); g.fillStyle(0x2d1a2c, 1); g.fillCircle(16, 16, 7); g.generateTexture("symbolTex", 32, 32); g.destroy();
-  }
+  updateHud() {
+    this.hudText.setText(
+      `${this.t("hudLives")}: ${this.state.lives}   ${this.t("hudScore")}: ${this.state.score}   ${this.t("hudPhase")}: ${this.state.phase}   ${this.t("hudRoom")}: ${this.cfg.roomNumber}`
+    );
+    this.infoText.setText("A/LEFT e D/RIGHT para trocar de pista | L idioma");
 
-  drawBackground() {
-    const g = this.add.graphics();
-    g.fillStyle(0x222222, 1); 
-    g.fillRect(0, 0, 960, 540);
-    
-    // Grupo das linhas brancas da estrada
-    this.roadLines = this.add.group();
-    for (let i = 0; i < 7; i++) {
-      let line = this.add.rectangle(480, i * 100, 15, 60, 0xffffff).setDepth(1);
-      this.roadLines.add(line);
+    if (!this.levelFinished) {
+      this.centerHint.setText(`${this.t("targetScore")}: ${this.cfg.targetScore}`);
     }
   }
 
-  createRoomLayout() {
-    for (let y = 0; y <= 540; y += 40) { 
-      this.walls.create(20, y, "wallTex"); 
-      this.walls.create(940, y, "wallTex"); 
-    }
-    
-    // Agora é uma linha de meta, larga e bem posicionada!
-    this.exitDoor = this.physics.add.staticSprite(480, 50, "metaSprite").setDepth(7);
-    if (!this.cfg.final) this.walls.add(this.exitDoor);
-  }
+  updatePhaseByScore() {
+    let nextPhase = 1;
+    if (this.state.score >= this.cfg.phase2Score) nextPhase = 2;
+    if (this.state.score >= this.cfg.phase3Score) nextPhase = 3;
 
-  createEnemies() {
-    this.cfg.enemies.forEach((e) => {
-      const enemy = this.enemies.create(e.x, e.y, "taxiSprite");
-      enemy.setImmovable(true);
-    });
-  }
-
-  createHud() {
-    const panel = this.add.rectangle(260, 38, 500, 54, 0x100c09, 0.68).setDepth(30); panel.setStrokeStyle(1, 0xb67a32, 0.9);
-    this.hudText = this.add.text(18, 20, "", { fontSize: "19px", color: "#f2e6d8" }).setDepth(31);
-    this.infoText = this.add.text(18, 50, "", { fontSize: "15px", color: "#e0b884" }).setDepth(31);
-    this.hintText = this.add.text(480, 510, "", { fontSize: "18px", color: "#f6ddb4", backgroundColor: "#3f2a1a", padding: { left: 10, right: 10, top: 4, bottom: 4 } }).setOrigin(0.5).setDepth(31);
-  }
-
-  refreshHud() {
-    this.hudText.setText(`${this.t("hudLives")}: ${this.state.lives}   ${this.t("hudTime")}: ${this.state.timeLeft}   ${this.t("hudRoom")}: ${this.cfg.roomNumber}   ${this.t("hudKeys")}: ${this.state.keys}/3`);
-    this.infoText.setText("WASD/Setas mover | E interagir | L idioma");
-  }
-
-  createPuzzleOverlay() {
-    this.ovBg = this.add.rectangle(480, 270, 620, 330, 0x060504, 0.88).setDepth(50).setVisible(false); this.ovBg.setStrokeStyle(2, 0xc68542, 1);
-    this.ovTitle = this.add.text(480, 170, "", { fontSize: "34px", color: "#f2d2a2", fontStyle: "bold" }).setOrigin(0.5).setDepth(51).setVisible(false);
-    this.ovPrompt = this.add.text(480, 225, "", { fontSize: "22px", color: "#f2e6d8", align: "center", wordWrap: { width: 540 } }).setOrigin(0.5).setDepth(51).setVisible(false);
-    this.ovInput = this.add.text(480, 285, "", { fontSize: "32px", color: "#ffd38a", backgroundColor: "#291c12", padding: { left: 12, right: 12, top: 8, bottom: 8 } }).setOrigin(0.5).setDepth(51).setVisible(false);
-    this.ovFeedback = this.add.text(480, 335, "", { fontSize: "20px", color: "#b6f09b" }).setOrigin(0.5).setDepth(51).setVisible(false);
-    this.ovClose = this.add.text(480, 385, "", { fontSize: "16px", color: "#d4c5aa" }).setOrigin(0.5).setDepth(51).setVisible(false);
-  }
-
-  openPuzzle() {
-    if (this.puzzleSolved) return;
-    this.puzzleOpen = true;
-    this.puzzleInput = "";
-    this.ovTitle.setText(this.t(this.cfg.titleKey));
-    this.ovPrompt.setText(this.t(this.cfg.promptKey));
-    this.ovInput.setText(`${this.t("puzzleInput")}: _`);
-    this.ovFeedback.setText("");
-    this.ovClose.setText(this.t("closePuzzle"));
-    [this.ovBg, this.ovTitle, this.ovPrompt, this.ovInput, this.ovFeedback, this.ovClose].forEach((el) => el.setVisible(true));
-  }
-
-  closePuzzle() {
-    this.puzzleOpen = false;
-    [this.ovBg, this.ovTitle, this.ovPrompt, this.ovInput, this.ovFeedback, this.ovClose].forEach((el) => el.setVisible(false));
-    this.hintText.setText("");
-  }
-
-  submitPuzzle() {
-    if (this.puzzleInput.toLowerCase() === this.cfg.answer) {
-      this.puzzleSolved = true;
-      this.ovFeedback.setColor("#b6f09b");
-      this.ovFeedback.setText(this.t("puzzleSuccess"));
-      if (!this.keyItem) this.keyItem = this.keys.create(690, 270, "keyTex").setDepth(8);
-      if (!this.cfg.final) this.exitDoor.disableBody(true, true);
-      this.time.delayedCall(500, () => this.closePuzzle());
-    } else {
-      this.ovFeedback.setColor("#ff9d9d");
-      this.ovFeedback.setText(this.t("puzzleFail"));
+    if (nextPhase !== this.state.phase) {
+      this.state.phase = nextPhase;
+      this.centerHint.setText(`${this.t("phaseUp")} ${nextPhase}`);
+      this.time.delayedCall(1200, () => {
+        if (!this.levelFinished) this.centerHint.setText(`${this.t("targetScore")}: ${this.cfg.targetScore}`);
+      });
     }
   }
 
-  onCollectKey(_p, k) {
-    k.disableBody(true, true);
-    this.state.keys += 1;
-    this.refreshHud();
+  getObstacleSpeed() {
+    return this.cfg.baseSpeed + (this.state.phase - 1) * this.cfg.phaseSpeedBoost;
   }
 
-  onEnemyHit() {
-    if (this.hitCooldown || this.puzzleOpen) return;
+  getObstacleSpawnDelay() {
+    return Math.max(420, this.cfg.baseSpawnDelay - (this.state.phase - 1) * 120);
+  }
+
+  spawnObstacle() {
+    const lane = Phaser.Math.Between(0, 2);
+    const obstacle = this.obstacles.create(this.lanes[lane], -60, "taxiSprite").setDepth(8);
+    obstacle.body.setSize(58, 110).setOffset(22, 10);
+    obstacle.setData("speed", this.getObstacleSpeed() + Phaser.Math.Between(-25, 35));
+  }
+
+  spawnCoin() {
+    const lane = Phaser.Math.Between(0, 2);
+    const coin = this.coins.create(this.lanes[lane], -30, "gasolinaSprite").setDepth(8);
+    coin.body.setSize(24, 24).setOffset(4, 4);
+    coin.setData("speed", this.getObstacleSpeed() - 40);
+  }
+
+  onHitObstacle(_player, obstacle) {
+    if (this.hitCooldown || this.levelFinished) return;
+
     this.hitCooldown = true;
+    obstacle.destroy();
+
     this.state.lives -= 1;
-    this.player.setPosition(480, 450); 
-    this.player.setTint(0xff0000);
-    this.time.delayedCall(250, () => { this.player.clearTint(); this.hitCooldown = false; });
-    this.refreshHud();
-    if (this.state.lives <= 0) this.endRun(false);
+    this.player.setTint(0xff4d4d);
+    this.cameras.main.shake(120, 0.007);
+    this.centerHint.setText(this.t("hitObstacle"));
+
+    this.time.delayedCall(260, () => {
+      this.player.clearTint();
+      this.hitCooldown = false;
+      if (!this.levelFinished) this.centerHint.setText(`${this.t("targetScore")}: ${this.cfg.targetScore}`);
+    });
+
+    this.updateHud();
+
+    if (this.state.lives <= 0) {
+      this.endRun(false);
+    }
+  }
+
+  onCollectCoin(_player, coin) {
+    coin.destroy();
+    this.state.score += this.cfg.coinScore;
+    this.centerHint.setText(this.t("coinCollected"));
+    this.time.delayedCall(400, () => {
+      if (!this.levelFinished) this.centerHint.setText(`${this.t("targetScore")}: ${this.cfg.targetScore}`);
+    });
+    this.updatePhaseByScore();
+    this.updateHud();
+  }
+
+  finishLevel() {
+    this.levelFinished = true;
+    this.obstacles.clear(true, true);
+    this.coins.clear(true, true);
+
+    this.centerHint.setText(this.t("levelClear"));
+
+    this.registry.set("runState", {
+      ...this.state,
+      level: this.cfg.roomNumber
+    });
+
+    this.time.delayedCall(1000, () => {
+      if (this.cfg.final) {
+        this.endRun(true);
+      } else {
+        this.scene.start(this.cfg.nextScene);
+      }
+    });
   }
 
   endRun(victory) {
     this.registry.set("runState", this.state);
-    this.scene.start("EndScene", { victory });
+    this.scene.start("EndScene", { victory, score: this.state.score, phase: this.state.phase });
   }
 
-  gotoNextRoom() {
-    this.registry.set("runState", this.state);
-    this.scene.start(this.cfg.nextScene);
-  }
+  tryMoveLane(dir) {
+    if (this.levelFinished) return;
+    const nextLane = Phaser.Math.Clamp(this.currentLane + dir, 0, 2);
+    if (nextLane === this.currentLane) return;
 
-  handleTyping() {
-    const map = { ZERO: "0", ONE: "1", TWO: "2", THREE: "3", FOUR: "4", FIVE: "5", SIX: "6", SEVEN: "7", EIGHT: "8", NINE: "9", V: "v", I: "i", D: "d", A: "a" };
-    Object.entries(map).forEach(([k, v]) => {
-      if (Phaser.Input.Keyboard.JustDown(this.typeKeys[k]) && this.puzzleInput.length < 8) this.puzzleInput += v;
+    this.currentLane = nextLane;
+
+    this.tweens.add({
+      targets: this.player,
+      x: this.lanes[this.currentLane],
+      duration: 110,
+      ease: "Sine.Out"
     });
   }
 
   update() {
-    const roadSpeed = 4 + (this.state.keys * 2.5);
-
-    // Movimentação do fundo e inimigos
-    if (!this.puzzleOpen && this.roadLines) {
-      this.roadLines.getChildren().forEach(line => {
-        line.y += roadSpeed; 
-        if (line.y > 600) line.y = -50; 
-      });
-
-      if (this.enemies) {
-        this.enemies.getChildren().forEach(taxi => {
-          taxi.y += roadSpeed; 
-          
-          if (taxi.y > 600) {
-            taxi.y = -80; 
-            taxi.x = Phaser.Math.Between(60, 900); 
-          }
-        });
-      }
-    }
-
     if (Phaser.Input.Keyboard.JustDown(this.langKey)) {
       const c = this.registry.get("lang") || "pt";
       this.registry.set("lang", c === "pt" ? "en" : "pt");
-      this.refreshHud();
+      this.updateHud();
     }
 
-    if (this.puzzleOpen) {
-      if (Phaser.Input.Keyboard.JustDown(this.escapeKey)) this.closePuzzle();
-      if (Phaser.Input.Keyboard.JustDown(this.enterKey)) this.submitPuzzle();
-      if (Phaser.Input.Keyboard.JustDown(this.backspaceKey)) this.puzzleInput = this.puzzleInput.slice(0, -1);
-      this.handleTyping();
-      this.ovInput.setText(`${this.t("puzzleInput")}: ${this.puzzleInput || "_"}`);
-      this.player.setVelocity(0, 0);
-      return;
-    }
+    if (Phaser.Input.Keyboard.JustDown(this.leftKey) || Phaser.Input.Keyboard.JustDown(this.aKey)) this.tryMoveLane(-1);
+    if (Phaser.Input.Keyboard.JustDown(this.rightKey) || Phaser.Input.Keyboard.JustDown(this.dKey)) this.tryMoveLane(1);
 
-    if (Phaser.Math.Distance.Between(this.player.x, this.player.y, this.puzzleObject.x, this.puzzleObject.y) < 70) {
-      this.hintText.setText(this.t("interactHint"));
-      if (Phaser.Input.Keyboard.JustDown(this.interactKey)) this.openPuzzle();
-    } else if (!this.hintText.text.includes("Porta") && !this.hintText.text.includes("Door")) {
-      this.hintText.setText("");
-    }
+    if (!this.levelFinished) {
+      const speed = this.getObstacleSpeed();
 
-    if (Phaser.Math.Distance.Between(this.player.x, this.player.y, this.exitDoor.x, this.exitDoor.y) < 60 && Phaser.Input.Keyboard.JustDown(this.interactKey)) {
-      if (this.cfg.final) {
-        if (this.state.keys >= 3) this.endRun(true);
-        else this.hintText.setText(this.t("finalDoorLocked"));
-      } else if (this.puzzleSolved) {
-        this.gotoNextRoom();
-      } else {
-        this.hintText.setText(this.t("doorLocked"));
+      this.roadLines.getChildren().forEach((line) => {
+        line.y += speed * 0.18;
+        if (line.y > 580) line.y = -40;
+      });
+
+      const now = this.time.now;
+      if (now - this.lastObstacleSpawn > this.getObstacleSpawnDelay()) {
+        this.lastObstacleSpawn = now;
+        this.spawnObstacle();
       }
-    }
+      if (now - this.lastCoinSpawn > this.cfg.coinSpawnDelay) {
+        this.lastCoinSpawn = now;
+        this.spawnCoin();
+      }
 
-    // Movimentação do jogador
-    const speed = 180;
-    let vx = 0, vy = 0;
-    if (this.cursors.left.isDown || this.wasd.A.isDown) vx = -speed;
-    else if (this.cursors.right.isDown || this.wasd.D.isDown) vx = speed;
-    if (this.cursors.up.isDown || this.wasd.W.isDown) vy = -speed;
-    else if (this.cursors.down.isDown || this.wasd.S.isDown) vy = speed;
-    this.player.setVelocity(vx, vy);
+      this.obstacles.getChildren().forEach((obstacle) => {
+        obstacle.y += obstacle.getData("speed") * 0.016;
+        if (obstacle.y > 620) obstacle.destroy();
+      });
+
+      this.coins.getChildren().forEach((coin) => {
+        coin.y += coin.getData("speed") * 0.016;
+        if (coin.y > 620) coin.destroy();
+      });
+    }
   }
 }
