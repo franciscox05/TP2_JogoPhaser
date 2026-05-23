@@ -9,42 +9,45 @@ export class MenuScene extends Phaser.Scene {
 
     this.drawBackground();
 
-    const panel = this.add.rectangle(480, 280, 560, 330, 0x090705, 0.72);
-    panel.setStrokeStyle(2, 0xb67a32, 0.9);
+    const panel = this.add.rectangle(480, 280, 620, 350, 0x05070b, 0.76);
+    panel.setStrokeStyle(2, 0x3fb0ff, 0.9);
 
-    this.titleText = this.add.text(480, 170, "", {
-      fontSize: "64px",
-      color: "#d97a28",
-      fontStyle: "bold"
+    this.titleText = this.add.text(480, 155, "", {
+      fontSize: "66px",
+      color: "#66d1ff",
+      fontStyle: "bold",
+      stroke: "#0a1f33",
+      strokeThickness: 6
     }).setOrigin(0.5);
 
-    this.subtitle = this.add.text(480, 230, "DODGE, COLLECT, SURVIVE", {
-      fontSize: "21px",
-      color: "#f2d2a2",
-      letterSpacing: 3
+    this.subtitle = this.add.text(480, 225, "3 LANES - 3 LEVELS - 1 ESCAPE", {
+      fontSize: "20px",
+      color: "#cdefff",
+      letterSpacing: 2
     }).setOrigin(0.5);
 
     this.startText = this.add.text(480, 305, "", {
-      fontSize: "32px",
-      color: "#fff4dd",
-      backgroundColor: "#6b3f1d",
-      padding: { left: 18, right: 18, top: 10, bottom: 10 }
+      fontSize: "30px",
+      color: "#ffffff",
+      backgroundColor: "#14608a",
+      padding: { left: 20, right: 20, top: 10, bottom: 10 }
     }).setOrigin(0.5);
 
-    this.langHintText = this.add.text(480, 370, "", {
-      fontSize: "20px",
-      color: "#e7be85"
+    this.langHintText = this.add.text(480, 366, "", {
+      fontSize: "19px",
+      color: "#d7ebff"
     }).setOrigin(0.5);
 
-    this.langCurrentText = this.add.text(480, 412, "", {
+    this.langCurrentText = this.add.text(480, 408, "", {
       fontSize: "18px",
-      color: "#d7e8ff"
+      color: "#b6d9ff"
     }).setOrigin(0.5);
 
     this.tweens.add({
       targets: this.startText,
-      alpha: { from: 1, to: 0.5 },
-      duration: 850,
+      scale: { from: 1, to: 1.04 },
+      alpha: { from: 1, to: 0.75 },
+      duration: 700,
       yoyo: true,
       repeat: -1
     });
@@ -54,24 +57,28 @@ export class MenuScene extends Phaser.Scene {
 
   drawBackground() {
     const g = this.add.graphics();
-    g.fillGradientStyle(0x1a110b, 0x1a110b, 0x3b2418, 0x3b2418, 1);
+    g.fillGradientStyle(0x0a111c, 0x0a111c, 0x15263d, 0x15263d, 1);
     g.fillRect(0, 0, 960, 540);
 
-    g.fillStyle(0x4f3323, 1);
-    for (let y = 40; y < 500; y += 44) {
-      for (let x = 20; x < 940; x += 68) {
-        const wobble = Phaser.Math.Between(-4, 4);
-        g.fillRoundedRect(x + wobble, y, 60, 28, 4);
-      }
+    g.fillStyle(0x232323, 1);
+    g.fillRect(200, 0, 560, 540);
+
+    g.fillStyle(0xffffff, 0.2);
+    g.fillRect(382, 0, 8, 540);
+    g.fillRect(570, 0, 8, 540);
+
+    for (let i = 0; i < 9; i += 1) {
+      const y = i * 80;
+      this.add.rectangle(386, y, 6, 45, 0xffffff, 0.55);
+      this.add.rectangle(574, y + 35, 6, 45, 0xffffff, 0.55);
     }
 
-    g.fillStyle(0x111111, 0.35);
-    g.fillRect(0, 0, 960, 540);
+    // Headlights/glow
+    this.add.circle(430, 445, 120, 0x66d1ff, 0.14);
+    this.add.circle(530, 445, 120, 0x66d1ff, 0.14);
 
-    this.add.circle(140, 120, 80, 0xff9e47, 0.2);
-    this.add.circle(820, 140, 75, 0xff9e47, 0.2);
-    this.add.circle(130, 120, 26, 0xff55ff, 0.6);
-    this.add.circle(820, 140, 26, 0xff55ff, 0.6);
+    // Car silhouette hint
+    this.add.rectangle(480, 445, 120, 52, 0x0f2b45, 0.95).setStrokeStyle(2, 0x66d1ff, 0.8);
   }
 
   refreshTexts() {
@@ -92,7 +99,7 @@ export class MenuScene extends Phaser.Scene {
     }
 
     if (Phaser.Input.Keyboard.JustDown(this.enterKey)) {
-      this.registry.set("runState", { lives: 3, score: 0, phase: 1, level: 1, elapsed: 0 });
+      this.registry.set("runState", { lives: 3, score: 0, phase: 1, level: 1, fuel: 100, elapsed: 0 });
       this.sound.play("engineStart");
       this.scene.start("Room1Scene");
     }

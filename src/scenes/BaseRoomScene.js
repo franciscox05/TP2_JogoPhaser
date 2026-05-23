@@ -114,25 +114,39 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   createHud() {
-    const panel = this.add.rectangle(250, 38, 470, 58, 0x000000, 0.45).setDepth(30);
-    panel.setStrokeStyle(1, 0x999999, 0.8);
+    const panel = this.add.rectangle(300, 36, 580, 64, 0x000000, 0.68).setDepth(30);
+    panel.setStrokeStyle(2, 0x69bfff, 0.9);
 
-    this.hudText = this.add.text(20, 20, "", {
-      fontSize: "17px",
-      color: "#f5f5f5"
+    this.hudText = this.add.text(26, 16, "", {
+      fontSize: "20px",
+      color: "#ffffff",
+      stroke: "#000000",
+      strokeThickness: 4
     }).setDepth(31);
 
-    this.infoText = this.add.text(20, 48, "", {
+    this.infoText = this.add.text(26, 44, "", {
       fontSize: "14px",
-      color: "#d4d4d4"
+      color: "#dfefff",
+      stroke: "#000000",
+      strokeThickness: 3
     }).setDepth(31);
+
+    this.fuelBox = this.add.rectangle(825, 34, 220, 30, 0x000000, 0.6).setDepth(30).setStrokeStyle(1, 0xffffff, 0.8);
+    this.fuelBarBg = this.add.rectangle(825, 34, 180, 14, 0x1c1c1c, 0.95).setDepth(31);
+    this.fuelBarFill = this.add.rectangle(735, 34, 180, 14, 0x2ecc71, 1).setOrigin(0, 0.5).setDepth(32);
+    this.fuelLabel = this.add.text(825, 34, "", {
+      fontSize: "13px",
+      color: "#ffffff",
+      stroke: "#000000",
+      strokeThickness: 3
+    }).setOrigin(0.5).setDepth(33);
 
     this.centerHint = this.add.text(480, 510, "", {
       fontSize: "18px",
       color: "#ffffff",
       backgroundColor: "#000000",
       padding: { left: 10, right: 10, top: 4, bottom: 4 }
-    }).setOrigin(0.5).setDepth(31).setAlpha(0.85);
+    }).setOrigin(0.5).setDepth(31).setAlpha(0.9);
 
     this.pauseOverlay = this.add.rectangle(480, 270, 960, 540, 0x000000, 0.45).setDepth(60).setVisible(false);
     this.pauseText = this.add.text(480, 270, this.t("paused"), {
@@ -150,9 +164,14 @@ export class BaseRoomScene extends Phaser.Scene {
   updateHud() {
     const fuelRounded = Math.round(this.state.fuel);
     this.hudText.setText(
-      `${this.t("hudLives")}: ${this.state.lives}   ${this.t("hudFuel")}: ${fuelRounded}%   ${this.t("hudScore")}: ${this.state.score}   ${this.t("hudPhase")}: ${this.state.phase}   ${this.t("hudRoom")}: ${this.cfg.roomNumber}`
+      `${this.t("hudLives")}: ${this.state.lives}   ${this.t("hudScore")}: ${this.state.score}   ${this.t("hudPhase")}: ${this.state.phase}   ${this.t("hudRoom")}: ${this.cfg.roomNumber}`
     );
     this.infoText.setText("A/LEFT e D/RIGHT pista | P pausa | L idioma");
+
+    const ratio = Phaser.Math.Clamp(this.state.fuel / 100, 0, 1);
+    this.fuelBarFill.width = 180 * ratio;
+    this.fuelBarFill.fillColor = ratio > 0.5 ? 0x2ecc71 : ratio > 0.25 ? 0xf1c40f : 0xe74c3c;
+    this.fuelLabel.setText(`${this.t("hudFuel")}: ${fuelRounded}%`);
 
     if (!this.levelFinished && !this.isPaused) {
       this.centerHint.setText(`${this.t("targetScore")}: ${this.cfg.targetScore}`);
@@ -178,21 +197,34 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   getObstacleSpawnDelay() {
-    return Math.max(420, this.cfg.baseSpawnDelay - (this.state.phase - 1) * 120);
+    return Math.max(470, this.cfg.baseSpawnDelay - (this.state.phase - 1) * 110);
+  }
+
+  hasLaneSpace(group, laneIndex, minGap) {
+    const laneX = this.lanes[laneIndex];
+    return !group.getChildren().some((obj) => obj.active && Math.abs(obj.x - laneX) < 5 && obj.y < minGap);
   }
 
   spawnObstacle() {
-    const lane = Phaser.Math.Between(0, 2);
-    const obstacle = this.obstacles.create(this.lanes[lane], -60, "taxiSprite").setDepth(8);
+    const order = Phaser.Utils.Array.Shuffle([0, 1, 2]);
+    const lane = order.find((idx) => this.hasLaneSpace(this.obstacles, idx, 220));
+    if (lane === undefined) return;
+
+    const obstacle = this.obstacles.create(this.lanes[lane], -70, "taxiSprite").setDepth(8);
     obstacle.body.setSize(58, 110).setOffset(22, 10);
-    obstacle.setData("speed", this.getObstacleSpeed() + Phaser.Math.Between(-25, 35));
+    obstacle.setData("speed", this.getObstacleSpeed());
+    obstacle.setData("lane", lane);
   }
 
   spawnCoin() {
-    const lane = Phaser.Math.Between(0, 2);
-    const coin = this.coins.create(this.lanes[lane], -30, "gasolinaSprite").setDepth(8);
+    const order = Phaser.Utils.Array.Shuffle([0, 1, 2]);
+    const lane = order.find((idx) => this.hasLaneSpace(this.coins, idx, 170) && this.hasLaneSpace(this.obstacles, idx, 170));
+    if (lane === undefined) return;
+
+    const coin = this.coins.create(this.lanes[lane], -34, "gasolinaSprite").setDepth(8);
     coin.body.setSize(24, 24).setOffset(4, 4);
-    coin.setData("speed", this.getObstacleSpeed() - 40);
+    coin.setData("speed", Math.max(180, this.getObstacleSpeed() - 60));
+    coin.setData("lane", lane);
   }
 
   onHitObstacle(_player, obstacle) {
