@@ -1,42 +1,63 @@
-﻿# TP2 - Masmorra Escape (Phaser 3)
+# TP2 - Road Escape (Phaser 3)
 
 ## Elementos do Grupo
-- Nome 1 - N.º 1
-- Nome 2 - N.º 2
+- Francisco (...) - N.? (...)
+- Afonso (...) - N.? (...)
 
 ## Phaser
-- Versão: 3.90.0
-- Inclusão: CDN em `index.html`
+- Vers?o: 3.90.0
+- Inclus?o: CDN em `index.html`
 
-## Descrição do Jogo
-Jogo 2D top-down com tema de masmorra. O jogador deve recolher a chave e alcançar a saída antes do tempo acabar, evitando inimigos.
+## Descri??o do Jogo
+`Road Escape` ? um jogo 2D de desvio e sobreviv?ncia em 3 pistas.
+O jogador controla um carro, desvia-se de t?xis, apanha combust?vel/moedas e tenta completar 3 n?veis com dificuldade progressiva.
 
-## Regras
-- Recolher 1 chave para desbloquear a saída.
-- Evitar inimigos patrulha.
-- Vence ao entrar na saída com a chave.
-- Perde ao ficar sem vidas ou sem tempo.
+## Regras e Progress?o
+- Existem 3 n?veis (fases maiores), cada um com meta de score.
+- Em cada n?vel, a velocidade e o spawn de obst?culos aumentam por fases internas (Fase 1, 2 e 3).
+- O jogador perde vida ao colidir com obst?culos.
+- O combust?vel desce continuamente e aumenta ao apanhar pickups.
+- H? vida extra condicional: s? pode aparecer quando o jogador est? com 1 vida, apenas 1 de cada vez e com cooldown.
+- Vit?ria: completar o ?ltimo n?vel.
+- Derrota: ficar sem vidas ou sem combust?vel.
 
 ## Controles
-- `WASD` ou `Setas`: mover
-- `E`: alternar idioma (PT/EN)
-- `R`: reiniciar após Game Over/Vitória
+- `A / LEFT`: mudar para a pista da esquerda
+- `D / RIGHT`: mudar para a pista da direita
+- `P`: pausa (Continuar / Reiniciar / Menu)
+- `L`: alternar idioma PT/EN
+- `R`: reiniciar no ecr? de fim
 
 ## Como Executar
-1. Na raiz do projeto, correr:
+1. Na raiz do projeto:
 ```bash
 npm install
 npm start
 ```
-2. Abrir: `http://localhost:5173`
+2. Abrir no browser:
+- `http://localhost:5173`
 
-## Aspetos Multimédia
-- Imagens: primitivas gráficas geradas no Phaser (temporário) e futuros sprites em PNG otimizados.
-- Som: integrado `assets/audio/pickup.mp3` (placeholder para substituir por asset final comprimido).
-- Otimização: evitar assets sobredimensionados e remover assets não usados antes da entrega.
+## Aspetos Multim?dia
+- Imagens: SVG para carro, t?xi, combust?vel e meta em `assets/images/`.
+- ?udio: som integrado em `assets/audio/start.mp3` (usado no menu e como loop de fundo durante corrida).
+- UI/HUD e cen?rio: elementos gerados no Phaser (barras, pain?is e efeitos visuais).
 
-## Roadmap
-- [ ] Mapa final da masmorra com tileset.
-- [ ] Inimigos com padrões distintos.
-- [ ] Mais puzzles/chaves.
-- [ ] Polimento visual e áudio completo.
+## i18n
+- Suporte multil?ngue implementado em:
+  - `src/data/pt.json`
+  - `src/data/en.json`
+- Sele??o r?pida de idioma por tecla `L` durante o jogo e `E` no menu.
+
+## Estrutura Principal
+- `src/scenes/BootScene.js` - preload e setup global
+- `src/scenes/MenuScene.js` - menu inicial
+- `src/scenes/BaseRoomScene.js` - l?gica base de corrida
+- `src/scenes/Room1Scene.js` - n?vel 1
+- `src/scenes/Room2Scene.js` - n?vel 2
+- `src/scenes/Room3Scene.js` - n?vel 3
+- `src/scenes/EndScene.js` - ecr? de fim
+
+## Notas Finais para Entrega
+- Projeto executa localmente por HTTP.
+- Hist?rico Git e tags ser?o finalizados antes da entrega (`1.0`).
+- Demonstra??o presencial obrigat?ria no dia da entrega.
