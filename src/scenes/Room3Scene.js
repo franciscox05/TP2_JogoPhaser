@@ -7,16 +7,16 @@ export class Room3Scene extends BaseRoomScene {
       nextScene: "EndScene",
       final: true,
       targetScore: 3600,
-      phase2Score: 2600,
-      phase3Score: 3200,
-      baseSpeed: 360,
-      phaseSpeedBoost: 95,
-      baseSpawnDelay: 760,
+      phase2Score: 2650,
+      phase3Score: 3250,
+      baseSpeed: 330,
+      phaseSpeedBoost: 85,
+      baseSpawnDelay: 860,
       coinSpawnDelay: 1100,
       coinScore: 75,
-      fuelDrainPerTick: 0.33,
+      fuelDrainPerTick: 0.3,
       coinFuelBonus: 6,
-      hitFuelPenalty: 20
+      hitFuelPenalty: 19
     });
   }
 }
