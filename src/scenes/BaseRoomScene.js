@@ -148,12 +148,37 @@ export class BaseRoomScene extends Phaser.Scene {
       padding: { left: 10, right: 10, top: 4, bottom: 4 }
     }).setOrigin(0.5).setDepth(31).setAlpha(0.9);
 
-    this.pauseOverlay = this.add.rectangle(480, 270, 960, 540, 0x000000, 0.45).setDepth(60).setVisible(false);
-    this.pauseText = this.add.text(480, 270, this.t("paused"), {
-      fontSize: "52px",
+    this.pauseOverlay = this.add.rectangle(480, 270, 960, 540, 0x000000, 0.52).setDepth(60).setVisible(false);
+    this.pausePanel = this.add.rectangle(480, 270, 420, 300, 0x08111b, 0.88).setDepth(61).setVisible(false);
+    this.pausePanel.setStrokeStyle(2, 0x69bfff, 0.9);
+
+    this.pauseTitle = this.add.text(480, 180, this.t("paused"), {
+      fontSize: "46px",
       color: "#ffffff",
       fontStyle: "bold"
-    }).setOrigin(0.5).setDepth(61).setVisible(false);
+    }).setOrigin(0.5).setDepth(62).setVisible(false);
+
+    this.pauseContinueBtn = this.createPauseButton(480, 245, this.t("pauseContinue"), () => this.togglePause());
+    this.pauseRestartBtn = this.createPauseButton(480, 295, this.t("pauseRestart"), () => this.restartRun());
+    this.pauseMenuBtn = this.createPauseButton(480, 345, this.t("pauseMenu"), () => this.goToMenu());
+
+    this.pauseButtons = [this.pauseContinueBtn, this.pauseRestartBtn, this.pauseMenuBtn];
+    this.pauseButtons.forEach((btn) => btn.container.setVisible(false));
+  }
+
+  createPauseButton(x, y, label, onClick) {
+    const rect = this.add.rectangle(x, y, 240, 38, 0x1f4f7a, 0.95).setDepth(62).setStrokeStyle(1, 0xbbe6ff, 0.9);
+    const text = this.add.text(x, y, label, {
+      fontSize: "18px",
+      color: "#ffffff"
+    }).setOrigin(0.5).setDepth(63);
+
+    rect.setInteractive({ useHandCursor: true });
+    rect.on("pointerover", () => rect.setFillStyle(0x2d6fa8, 1));
+    rect.on("pointerout", () => rect.setFillStyle(0x1f4f7a, 0.95));
+    rect.on("pointerdown", onClick);
+
+    return { container: rect, text };
   }
 
   t(k) {
@@ -297,6 +322,16 @@ export class BaseRoomScene extends Phaser.Scene {
     });
   }
 
+  restartRun() {
+    this.registry.set("runState", { lives: 3, score: 0, phase: 1, level: 1, fuel: 100, elapsed: 0 });
+    this.scene.start("Room1Scene");
+  }
+
+  goToMenu() {
+    this.registry.set("runState", { lives: 3, score: 0, phase: 1, level: 1, fuel: 100, elapsed: 0 });
+    this.scene.start("MenuScene");
+  }
+
   tryMoveLane(dir) {
     if (this.levelFinished || this.isPaused) return;
     const nextLane = Phaser.Math.Clamp(this.currentLane + dir, 0, 2);
@@ -316,8 +351,18 @@ export class BaseRoomScene extends Phaser.Scene {
     if (this.levelFinished) return;
     this.isPaused = !this.isPaused;
     this.physics.world.isPaused = this.isPaused;
+
     this.pauseOverlay.setVisible(this.isPaused);
-    this.pauseText.setVisible(this.isPaused);
+    this.pausePanel.setVisible(this.isPaused);
+    this.pauseTitle.setVisible(this.isPaused);
+
+    this.pauseContinueBtn.container.setVisible(this.isPaused);
+    this.pauseContinueBtn.text.setVisible(this.isPaused);
+    this.pauseRestartBtn.container.setVisible(this.isPaused);
+    this.pauseRestartBtn.text.setVisible(this.isPaused);
+    this.pauseMenuBtn.container.setVisible(this.isPaused);
+    this.pauseMenuBtn.text.setVisible(this.isPaused);
+
     if (!this.isPaused) this.updateHud();
   }
 
@@ -325,7 +370,10 @@ export class BaseRoomScene extends Phaser.Scene {
     if (Phaser.Input.Keyboard.JustDown(this.langKey)) {
       const c = this.registry.get("lang") || "pt";
       this.registry.set("lang", c === "pt" ? "en" : "pt");
-      this.pauseText.setText(this.t("paused"));
+      this.pauseTitle.setText(this.t("paused"));
+      this.pauseContinueBtn.text.setText(this.t("pauseContinue"));
+      this.pauseRestartBtn.text.setText(this.t("pauseRestart"));
+      this.pauseMenuBtn.text.setText(this.t("pauseMenu"));
       this.updateHud();
     }
 
