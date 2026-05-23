@@ -13,19 +13,19 @@ export class MenuScene extends Phaser.Scene {
     panel.setStrokeStyle(2, 0xb67a32, 0.9);
 
     this.titleText = this.add.text(480, 170, "", {
-      fontSize: "72px",
+      fontSize: "64px",
       color: "#d97a28",
       fontStyle: "bold"
     }).setOrigin(0.5);
 
-    this.subtitle = this.add.text(480, 230, "ESCAPE ROOM DUNGEON", {
-      fontSize: "22px",
+    this.subtitle = this.add.text(480, 230, "DODGE, COLLECT, SURVIVE", {
+      fontSize: "21px",
       color: "#f2d2a2",
-      letterSpacing: 4
+      letterSpacing: 3
     }).setOrigin(0.5);
 
     this.startText = this.add.text(480, 305, "", {
-      fontSize: "34px",
+      fontSize: "32px",
       color: "#fff4dd",
       backgroundColor: "#6b3f1d",
       padding: { left: 18, right: 18, top: 10, bottom: 10 }
@@ -92,7 +92,8 @@ export class MenuScene extends Phaser.Scene {
     }
 
     if (Phaser.Input.Keyboard.JustDown(this.enterKey)) {
-      this.sound.play("engineStart"); // Toca o som do motor
+      this.registry.set("runState", { lives: 3, score: 0, phase: 1, level: 1, elapsed: 0 });
+      this.sound.play("engineStart");
       this.scene.start("Room1Scene");
     }
   }
