@@ -14,7 +14,7 @@ export class Room3Scene extends BaseRoomScene {
       baseSpawnDelay: 860,
       coinSpawnDelay: 1100,
       coinScore: 75,
-      fuelDrainPerTick: 0.28,
+      fuelDrainPerTick: 0.34,
       coinFuelBonus: 8,
       hitFuelPenalty: 17,
       lifeRespawnDelay: 17000,
