@@ -4,16 +4,16 @@ export class Room2Scene extends BaseRoomScene {
   constructor() {
     super("Room2Scene", {
       roomNumber: 2,
-      objectTex: "riddleTex",
-      titleKey: "puzzleWordTitle",
-      promptKey: "puzzleWordPrompt",
-      answer: "vida",
       nextScene: "Room3Scene",
       final: false,
-      enemies: [
-        { x: 150, y: 180, vx: 110 },
-        { x: 420, y: 360, vy: 110 }
-      ]
+      targetScore: 2000,
+      phase2Score: 1200,
+      phase3Score: 1700,
+      baseSpeed: 300,
+      phaseSpeedBoost: 80,
+      baseSpawnDelay: 860,
+      coinSpawnDelay: 1200,
+      coinScore: 60
     });
   }
 }
