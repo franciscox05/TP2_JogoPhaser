@@ -54,6 +54,8 @@ export class BaseRoomScene extends Phaser.Scene {
     this.lastLifeSpawnTime = 0;
     this.activeLifePickup = null;
 
+    this.startBackgroundMusic();
+
     this.gameTimer = this.time.addEvent({
       delay: 100,
       loop: true,
@@ -62,7 +64,7 @@ export class BaseRoomScene extends Phaser.Scene {
 
         this.state.elapsed += 0.1;
         this.state.score += 1;
-        this.state.fuel = Math.max(0, this.state.fuel - this.cfg.fuelDrainPerTick);
+        this.state.fuel = Math.max(0, this.state.fuel - this.getFuelDrainPerTick());
 
         if (this.state.fuel <= 0) {
           this.centerHint.setText(this.t("fuelEmpty"));
@@ -92,9 +94,15 @@ export class BaseRoomScene extends Phaser.Scene {
     g.fillRect(220, 0, 20, 540);
     g.fillRect(720, 0, 20, 540);
 
-    g.fillStyle(0xffffff, 0.3);
-    g.fillRect(392, 0, 8, 540);
-    g.fillRect(560, 0, 8, 540);
+    // Bordas amarelas da estrada para destacar limites
+    g.fillStyle(0xf1c40f, 0.95);
+    g.fillRect(238, 0, 4, 540);
+    g.fillRect(718, 0, 4, 540);
+
+    // Divisorias principais das 3 pistas com contraste melhor
+    g.fillStyle(0xffffff, 0.42);
+    g.fillRect(390, 0, 10, 540);
+    g.fillRect(558, 0, 10, 540);
 
     this.roadLines = this.add.group();
     for (let i = 0; i < 8; i += 1) {
@@ -103,6 +111,22 @@ export class BaseRoomScene extends Phaser.Scene {
       const l2 = this.add.rectangle(564, y + 45, 6, 45, 0xffffff).setAlpha(0.65);
       this.roadLines.add(l1);
       this.roadLines.add(l2);
+    }
+
+    // Cenário lateral em movimento (postes/placas)
+    this.sideScenery = this.add.group();
+    for (let i = 0; i < 8; i += 1) {
+      const y = i * 80 + Phaser.Math.Between(-20, 20);
+
+      const leftPost = this.add.rectangle(120, y, 12, 42, 0x4f6d7a).setAlpha(0.85);
+      const rightPost = this.add.rectangle(840, y + 35, 12, 42, 0x4f6d7a).setAlpha(0.85);
+      const leftSign = this.add.rectangle(150, y + 8, 36, 20, 0x6aa6d8).setAlpha(0.9);
+      const rightSign = this.add.rectangle(810, y + 20, 36, 20, 0x6aa6d8).setAlpha(0.9);
+
+      this.sideScenery.add(leftPost);
+      this.sideScenery.add(rightPost);
+      this.sideScenery.add(leftSign);
+      this.sideScenery.add(rightSign);
     }
 
     if (!this.textures.exists("lifeSprite")) {
@@ -192,6 +216,8 @@ export class BaseRoomScene extends Phaser.Scene {
     rect.on("pointerout", () => rect.setFillStyle(0x1f4f7a, 0.95));
     rect.on("pointerdown", onClick);
 
+    rect.setVisible(false);
+    text.setVisible(false);
     return { container: rect, text };
   }
 
@@ -233,6 +259,12 @@ export class BaseRoomScene extends Phaser.Scene {
 
   getObstacleSpeed() {
     return this.cfg.baseSpeed + (this.state.phase - 1) * this.cfg.phaseSpeedBoost;
+  }
+
+  getFuelDrainPerTick() {
+    const byPhase = 1 + (this.state.phase - 1) * 0.22;
+    const byLevel = 1 + (this.cfg.roomNumber - 1) * 0.18;
+    return this.cfg.fuelDrainPerTick * byPhase * byLevel;
   }
 
   getObstacleSpawnDelay() {
@@ -340,6 +372,7 @@ export class BaseRoomScene extends Phaser.Scene {
     this.levelFinished = true;
     this.obstacles.clear(true, true);
     this.coins.clear(true, true);
+    this.lifePickups.clear(true, true);
 
     this.centerHint.setText(this.t("levelClear"));
 
@@ -351,6 +384,7 @@ export class BaseRoomScene extends Phaser.Scene {
     });
 
     this.time.delayedCall(1000, () => {
+      this.stopBackgroundMusic();
       if (this.cfg.final) {
         this.endRun(true);
       } else {
@@ -360,6 +394,7 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   endRun(victory) {
+    this.stopBackgroundMusic();
     this.registry.set("runState", this.state);
     this.scene.start("EndScene", {
       victory,
@@ -370,11 +405,13 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   restartRun() {
+    this.stopBackgroundMusic();
     this.registry.set("runState", { lives: 3, score: 0, phase: 1, level: 1, fuel: 100, elapsed: 0 });
     this.scene.start("Room1Scene");
   }
 
   goToMenu() {
+    this.stopBackgroundMusic();
     this.registry.set("runState", { lives: 3, score: 0, phase: 1, level: 1, fuel: 100, elapsed: 0 });
     this.scene.start("MenuScene");
   }
@@ -441,6 +478,11 @@ export class BaseRoomScene extends Phaser.Scene {
         if (line.y > 580) line.y = -40;
       });
 
+      this.sideScenery.getChildren().forEach((obj) => {
+        obj.y += speed * 0.12;
+        if (obj.y > 590) obj.y = -40;
+      });
+
       const now = this.time.now;
       if (now - this.lastObstacleSpawn > this.getObstacleSpawnDelay()) {
         this.lastObstacleSpawn = now;
@@ -471,5 +513,15 @@ export class BaseRoomScene extends Phaser.Scene {
         }
       });
     }
+  }
+
+  startBackgroundMusic() {
+    if (this.bgMusic && this.bgMusic.isPlaying) return;
+    this.bgMusic = this.sound.add("engineStart", { loop: true, volume: 0.18 });
+    this.bgMusic.play();
+  }
+
+  stopBackgroundMusic() {
+    if (this.bgMusic && this.bgMusic.isPlaying) this.bgMusic.stop();
   }
 }
