@@ -5,6 +5,8 @@ export class EndScene extends Phaser.Scene {
 
   init(data) {
     this.victory = Boolean(data?.victory);
+    this.score = Number(data?.score ?? 0);
+    this.phase = Number(data?.phase ?? 1);
   }
 
   create() {
@@ -16,21 +18,26 @@ export class EndScene extends Phaser.Scene {
     const title = this.victory ? dict.winTitle : dict.loseTitle;
     const subtitle = this.victory ? dict.winSubtitle : dict.loseSubtitle;
 
-    const panel = this.add.rectangle(480, 270, 620, 290, 0x080604, 0.74);
+    const panel = this.add.rectangle(480, 270, 620, 320, 0x080604, 0.74);
     panel.setStrokeStyle(2, this.victory ? 0x57b348 : 0xc45858, 1);
 
-    this.add.text(480, 190, title, {
-      fontSize: "62px",
+    this.add.text(480, 180, title, {
+      fontSize: "58px",
       color: this.victory ? "#8de969" : "#ff8b8b",
       fontStyle: "bold"
     }).setOrigin(0.5);
 
-    this.add.text(480, 275, subtitle, {
-      fontSize: "30px",
+    this.add.text(480, 250, subtitle, {
+      fontSize: "28px",
       color: "#f2e6d8"
     }).setOrigin(0.5);
 
-    this.add.text(480, 352, dict.restartHint, {
+    this.add.text(480, 300, `${dict.hudScore}: ${this.score}  |  ${dict.hudPhase}: ${this.phase}`, {
+      fontSize: "24px",
+      color: "#f2d2a2"
+    }).setOrigin(0.5);
+
+    this.add.text(480, 370, dict.restartHint, {
       fontSize: "24px",
       color: "#e7be85",
       backgroundColor: "#44291a",
@@ -56,7 +63,7 @@ export class EndScene extends Phaser.Scene {
 
   update() {
     if (Phaser.Input.Keyboard.JustDown(this.restartKey)) {
-      this.registry.set("runState", { lives: 3, timeLeft: 180, keys: 0 });
+      this.registry.set("runState", { lives: 3, score: 0, phase: 1, level: 1, elapsed: 0 });
       this.scene.start("MenuScene");
     }
   }
