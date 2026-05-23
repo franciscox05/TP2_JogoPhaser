@@ -13,6 +13,8 @@
   "targetScore": "Target score",
   "phaseUp": "Phase increased to",
   "coinCollected": "Coin collected!",
+  "lifeAppeared": "Extra life spawned!",
+  "lifeCollected": "Life recovered!",
   "hitObstacle": "You hit an obstacle!",
   "fuelEmpty": "Out of fuel!",
   "levelClear": "Level cleared!",

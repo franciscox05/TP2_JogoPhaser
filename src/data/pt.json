@@ -13,6 +13,8 @@
   "targetScore": "Meta de score",
   "phaseUp": "Fase aumentou para",
   "coinCollected": "Moeda apanhada!",
+  "lifeAppeared": "Vida extra apareceu!",
+  "lifeCollected": "Vida recuperada!",
   "hitObstacle": "Colidiste com um obstaculo!",
   "fuelEmpty": "Ficaste sem combustivel!",
   "levelClear": "Nivel concluido!",
