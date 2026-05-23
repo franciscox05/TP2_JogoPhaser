@@ -19,23 +19,23 @@ export class EndScene extends Phaser.Scene {
     const title = this.victory ? dict.winTitle : dict.loseTitle;
     const subtitle = this.victory ? dict.winSubtitle : dict.loseSubtitle;
 
-    const panel = this.add.rectangle(480, 270, 640, 340, 0x080604, 0.74);
+    const panel = this.add.rectangle(480, 270, 640, 380, 0x080604, 0.74);
     panel.setStrokeStyle(2, this.victory ? 0x57b348 : 0xc45858, 1);
 
-    this.add.text(480, 170, title, {
+    this.add.text(480, 150, title, {
       fontSize: "58px",
       color: this.victory ? "#8de969" : "#ff8b8b",
       fontStyle: "bold"
     }).setOrigin(0.5);
 
-    this.add.text(480, 238, subtitle, {
+    this.add.text(480, 215, subtitle, {
       fontSize: "28px",
       color: "#f2e6d8"
     }).setOrigin(0.5);
 
     this.add.text(
       480,
-      300,
+      265,
       `${dict.hudScore}: ${this.score}  |  ${dict.hudPhase}: ${this.phase}  |  ${dict.hudRoom}: ${this.level}`,
       {
         fontSize: "22px",
@@ -43,7 +43,14 @@ export class EndScene extends Phaser.Scene {
       }
     ).setOrigin(0.5);
 
-    this.add.text(480, 374, dict.restartHint, {
+    const medal = this.getMedalByScore(this.score);
+    this.add.text(480, 314, `${dict.medalLabel}: ${dict[medal.key]}`, {
+      fontSize: "24px",
+      color: medal.color,
+      fontStyle: "bold"
+    }).setOrigin(0.5);
+
+    this.add.text(480, 390, dict.restartHint, {
       fontSize: "24px",
       color: "#e7be85",
       backgroundColor: "#44291a",
@@ -51,6 +58,12 @@ export class EndScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     this.restartKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R);
+  }
+
+  getMedalByScore(score) {
+    if (score >= 3600) return { key: "medalGold", color: "#ffd54a" };
+    if (score >= 2500) return { key: "medalSilver", color: "#dfe7f2" };
+    return { key: "medalBronze", color: "#d68a4d" };
   }
 
   drawBackground() {
