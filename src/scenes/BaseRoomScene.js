@@ -7,14 +7,19 @@ export class BaseRoomScene extends Phaser.Scene {
   create() {
     this.physics.world.setBounds(20, 0, 920, 540);
 
-    this.state = this.registry.get("runState") || {
+    const defaultRunState = {
       lives: 3,
       score: 0,
       phase: 1,
       level: 1,
       fuel: 100,
+      shield: 0,
+      combo: 0,
+      bestCombo: 0,
+      nearMisses: 0,
       elapsed: 0
     };
+    this.state = { ...defaultRunState, ...(this.registry.get("runState") || {}) };
 
     this.lanes = [300, 480, 660];
     this.currentLane = 1;
@@ -29,6 +34,7 @@ export class BaseRoomScene extends Phaser.Scene {
     this.obstacles = this.physics.add.group();
     this.coins = this.physics.add.group();
     this.lifePickups = this.physics.add.group();
+    this.shieldPickups = this.physics.add.group();
 
     this.leftKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT);
     this.rightKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT);
@@ -40,19 +46,24 @@ export class BaseRoomScene extends Phaser.Scene {
     this.hitCooldown = false;
     this.levelFinished = false;
     this.isPaused = false;
+    this.isStarting = true;
 
     this.physics.add.collider(this.player, this.trackWalls);
     this.physics.add.overlap(this.player, this.obstacles, this.onHitObstacle, null, this);
     this.physics.add.overlap(this.player, this.coins, this.onCollectCoin, null, this);
     this.physics.add.overlap(this.player, this.lifePickups, this.onCollectLife, null, this);
+    this.physics.add.overlap(this.player, this.shieldPickups, this.onCollectShield, null, this);
 
     this.createHud();
     this.updateHud();
+    this.showLevelIntro();
 
     this.lastObstacleSpawn = 0;
     this.lastCoinSpawn = 0;
     this.lastLifeSpawnTime = 0;
     this.activeLifePickup = null;
+    this.lastShieldSpawnTime = 0;
+    this.activeShieldPickup = null;
 
     this.startBackgroundMusic();
 
@@ -60,7 +71,7 @@ export class BaseRoomScene extends Phaser.Scene {
       delay: 100,
       loop: true,
       callback: () => {
-        if (this.levelFinished || this.isPaused) return;
+        if (this.levelFinished || this.isPaused || this.isStarting) return;
 
         this.state.elapsed += 0.1;
         this.state.score += 1;
@@ -83,6 +94,8 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   createTrackBackground() {
+    this.createGeneratedTextures();
+
     const g = this.add.graphics();
     g.fillStyle(0x2f2f2f, 1);
     g.fillRect(0, 0, 960, 540);
@@ -129,14 +142,30 @@ export class BaseRoomScene extends Phaser.Scene {
       this.sideScenery.add(rightSign);
     }
 
+  }
+
+  createGeneratedTextures() {
     if (!this.textures.exists("lifeSprite")) {
-      g.clear();
-      g.fillStyle(0xe74c3c, 1);
-      g.fillCircle(14, 14, 14);
-      g.fillStyle(0xffffff, 1);
-      g.fillRect(12, 5, 4, 18);
-      g.fillRect(5, 12, 18, 4);
-      g.generateTexture("lifeSprite", 28, 28);
+      const life = this.add.graphics();
+      life.fillStyle(0xe74c3c, 1);
+      life.fillCircle(14, 14, 14);
+      life.fillStyle(0xffffff, 1);
+      life.fillRect(12, 5, 4, 18);
+      life.fillRect(5, 12, 18, 4);
+      life.generateTexture("lifeSprite", 28, 28);
+      life.destroy();
+    }
+
+    if (!this.textures.exists("shieldSprite")) {
+      const shield = this.add.graphics();
+      shield.fillStyle(0x1b7bd1, 1);
+      shield.fillRoundedRect(6, 2, 28, 34, 8);
+      shield.fillStyle(0x91e8ff, 1);
+      shield.fillRoundedRect(11, 7, 18, 22, 5);
+      shield.fillStyle(0xffffff, 0.95);
+      shield.fillTriangle(20, 9, 28, 17, 20, 29);
+      shield.generateTexture("shieldSprite", 40, 40);
+      shield.destroy();
     }
   }
 
@@ -152,11 +181,11 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   createHud() {
-    const panel = this.add.rectangle(300, 36, 580, 64, 0x000000, 0.68).setDepth(30);
+    const panel = this.add.rectangle(300, 40, 580, 72, 0x000000, 0.68).setDepth(30);
     panel.setStrokeStyle(2, 0x69bfff, 0.9);
 
     this.hudText = this.add.text(26, 16, "", {
-      fontSize: "20px",
+      fontSize: "18px",
       color: "#ffffff",
       stroke: "#000000",
       strokeThickness: 4
@@ -168,6 +197,9 @@ export class BaseRoomScene extends Phaser.Scene {
       stroke: "#000000",
       strokeThickness: 3
     }).setDepth(31);
+
+    this.progressBarBg = this.add.rectangle(26, 68, 552, 8, 0x101820, 0.95).setOrigin(0, 0.5).setDepth(31);
+    this.progressBarFill = this.add.rectangle(26, 68, 1, 8, 0x69bfff, 1).setOrigin(0, 0.5).setDepth(32);
 
     this.fuelBox = this.add.rectangle(825, 34, 220, 30, 0x000000, 0.6).setDepth(30).setStrokeStyle(1, 0xffffff, 0.8);
     this.fuelBarBg = this.add.rectangle(825, 34, 180, 14, 0x1c1c1c, 0.95).setDepth(31);
@@ -202,6 +234,30 @@ export class BaseRoomScene extends Phaser.Scene {
 
     this.pauseButtons = [this.pauseContinueBtn, this.pauseRestartBtn, this.pauseMenuBtn];
     this.pauseButtons.forEach((btn) => btn.container.setVisible(false));
+
+    this.createTouchControls();
+  }
+
+  createTouchControls() {
+    this.touchLeft = this.createTouchButton(86, 462, "<", () => this.tryMoveLane(-1));
+    this.touchRight = this.createTouchButton(874, 462, ">", () => this.tryMoveLane(1));
+  }
+
+  createTouchButton(x, y, label, onClick) {
+    const circle = this.add.circle(x, y, 42, 0x0b1e2c, 0.72).setDepth(34);
+    circle.setStrokeStyle(2, 0x69bfff, 0.85);
+    const text = this.add.text(x, y - 2, label, {
+      fontSize: "34px",
+      color: "#ffffff",
+      fontStyle: "bold"
+    }).setOrigin(0.5).setDepth(35);
+
+    circle.setInteractive({ useHandCursor: true });
+    circle.on("pointerover", () => circle.setFillStyle(0x164765, 0.86));
+    circle.on("pointerout", () => circle.setFillStyle(0x0b1e2c, 0.72));
+    circle.on("pointerdown", onClick);
+
+    return { circle, text };
   }
 
   createPauseButton(x, y, label, onClick) {
@@ -226,12 +282,28 @@ export class BaseRoomScene extends Phaser.Scene {
     return (this.registry.get("i18n")[l] || {})[k] ?? k;
   }
 
+  format(k, values) {
+    return this.t(k).replace(/\{(\w+)\}/g, (_match, key) => values[key] ?? "");
+  }
+
+  showLevelIntro() {
+    this.centerHint.setText(this.format("roomIntro", { room: this.cfg.roomNumber, score: this.cfg.targetScore }));
+    this.time.delayedCall(1300, () => {
+      this.isStarting = false;
+      if (!this.levelFinished && !this.isPaused) this.centerHint.setText(`${this.t("targetScore")}: ${this.cfg.targetScore}`);
+    });
+  }
+
   updateHud() {
     const fuelRounded = Math.round(this.state.fuel);
     this.hudText.setText(
-      `${this.t("hudLives")}: ${this.state.lives}   ${this.t("hudScore")}: ${this.state.score}   ${this.t("hudPhase")}: ${this.state.phase}   ${this.t("hudRoom")}: ${this.cfg.roomNumber}`
+      `${this.t("hudLives")}: ${this.state.lives}   ${this.t("hudShield")}: ${this.state.shield}   ${this.t("hudCombo")}: x${this.state.combo}   ${this.t("hudScore")}: ${this.state.score}   ${this.t("hudRoom")}: ${this.cfg.roomNumber}`
     );
-    this.infoText.setText("A/LEFT e D/RIGHT pista | P pausa | L idioma");
+    this.infoText.setText(`${this.t("hudControls")} | ${this.t("hudObjective")}: ${this.cfg.targetScore}`);
+
+    const roomStartScore = this.cfg.previousTargetScore ?? 0;
+    const roomProgress = Phaser.Math.Clamp((this.state.score - roomStartScore) / (this.cfg.targetScore - roomStartScore), 0, 1);
+    this.progressBarFill.width = 552 * roomProgress;
 
     const ratio = Phaser.Math.Clamp(this.state.fuel / 100, 0, 1);
     this.fuelBarFill.width = 180 * ratio;
@@ -268,7 +340,7 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   getObstacleSpawnDelay() {
-    return Math.max(470, this.cfg.baseSpawnDelay - (this.state.phase - 1) * 110);
+    return Math.max(this.cfg.minSpawnDelay ?? 620, this.cfg.baseSpawnDelay - (this.state.phase - 1) * 90);
   }
 
   hasLaneSpace(group, laneIndex, minGap) {
@@ -276,9 +348,28 @@ export class BaseRoomScene extends Phaser.Scene {
     return !group.getChildren().some((obj) => obj.active && Math.abs(obj.x - laneX) < 5 && obj.y < minGap);
   }
 
+  getBlockedLanesAhead(extraLane = null) {
+    const blocked = new Set(extraLane === null ? [] : [extraLane]);
+    const playerY = this.player?.y ?? 450;
+
+    this.obstacles.getChildren().forEach((obstacle) => {
+      if (!obstacle.active) return;
+      const y = obstacle.y;
+      const lane = obstacle.getData("lane");
+      if (y > -120 && y < playerY + 80) blocked.add(lane);
+    });
+
+    return blocked;
+  }
+
+  canSpawnObstacleInLane(lane) {
+    if (!this.hasLaneSpace(this.obstacles, lane, this.cfg.obstacleMinGap ?? 280)) return false;
+    return this.getBlockedLanesAhead(lane).size <= 2;
+  }
+
   spawnObstacle() {
     const order = Phaser.Utils.Array.Shuffle([0, 1, 2]);
-    const lane = order.find((idx) => this.hasLaneSpace(this.obstacles, idx, 220));
+    const lane = order.find((idx) => this.canSpawnObstacleInLane(idx));
     if (lane === undefined) return;
 
     const obstacle = this.obstacles.create(this.lanes[lane], -70, "taxiSprite").setDepth(8);
@@ -304,7 +395,23 @@ export class BaseRoomScene extends Phaser.Scene {
     this.hitCooldown = true;
     obstacle.destroy();
 
+    if (this.state.shield > 0) {
+      this.state.shield -= 1;
+      this.state.combo = 0;
+      this.player.setTint(0x66d9ff);
+      this.cameras.main.shake(90, 0.004);
+      this.centerHint.setText(this.t("shieldBlocked"));
+      this.time.delayedCall(280, () => {
+        this.player.clearTint();
+        this.hitCooldown = false;
+        if (!this.levelFinished && !this.isPaused) this.centerHint.setText(`${this.t("targetScore")}: ${this.cfg.targetScore}`);
+      });
+      this.updateHud();
+      return;
+    }
+
     this.state.lives -= 1;
+    this.state.combo = 0;
     this.state.fuel = Math.max(0, this.state.fuel - this.cfg.hitFuelPenalty);
     this.player.setTint(0xff4d4d);
     this.cameras.main.shake(120, 0.007);
@@ -346,6 +453,59 @@ export class BaseRoomScene extends Phaser.Scene {
     this.updateHud();
   }
 
+  onCollectShield(_player, shield) {
+    shield.destroy();
+    this.activeShieldPickup = null;
+    this.state.shield = Math.min(1, this.state.shield + 1);
+    this.centerHint.setText(this.t("shieldCollected"));
+    this.player.setTint(0x66d9ff);
+    this.time.delayedCall(550, () => {
+      this.player.clearTint();
+      if (!this.levelFinished && !this.isPaused) this.centerHint.setText(`${this.t("targetScore")}: ${this.cfg.targetScore}`);
+    });
+    this.updateHud();
+  }
+
+  awardNearMiss(obstacle) {
+    const obstacleLane = obstacle.getData("lane");
+    if (Math.abs(obstacleLane - this.currentLane) !== 1) return;
+
+    this.state.combo = Math.min(this.state.combo + 1, 9);
+    this.state.bestCombo = Math.max(this.state.bestCombo, this.state.combo);
+    this.state.nearMisses += 1;
+
+    const multiplier = Math.min(this.state.combo, 5);
+    const bonus = this.cfg.nearMissScore * multiplier;
+    this.state.score += bonus;
+
+    const label = `+${bonus} ${this.t("nearMiss")} (${this.t("combo")} x${this.state.combo})`;
+    this.centerHint.setText(label);
+    this.showFloatingScore(label);
+    this.time.delayedCall(650, () => {
+      if (!this.levelFinished && !this.isPaused) this.centerHint.setText(`${this.t("targetScore")}: ${this.cfg.targetScore}`);
+    });
+    this.updatePhaseByScore();
+    this.updateHud();
+  }
+
+  showFloatingScore(label) {
+    const text = this.add.text(this.player.x, this.player.y - 92, label, {
+      fontSize: "18px",
+      color: "#f9e86d",
+      stroke: "#000000",
+      strokeThickness: 4
+    }).setOrigin(0.5).setDepth(35);
+
+    this.tweens.add({
+      targets: text,
+      y: text.y - 38,
+      alpha: 0,
+      duration: 650,
+      ease: "Sine.Out",
+      onComplete: () => text.destroy()
+    });
+  }
+
   trySpawnLifePickup(now) {
     if (this.state.lives !== 1) return;
     if (this.activeLifePickup && this.activeLifePickup.active) return;
@@ -368,11 +528,35 @@ export class BaseRoomScene extends Phaser.Scene {
     });
   }
 
+  trySpawnShieldPickup(now) {
+    if (this.state.shield > 0) return;
+    if (this.activeShieldPickup && this.activeShieldPickup.active) return;
+    if (now - this.lastShieldSpawnTime < this.cfg.shieldRespawnDelay) return;
+    if (this.state.fuel > 70 && this.state.lives > 2) return;
+
+    const order = Phaser.Utils.Array.Shuffle([0, 1, 2]);
+    const lane = order.find((idx) => this.hasLaneSpace(this.obstacles, idx, 220) && this.hasLaneSpace(this.coins, idx, 150));
+    if (lane === undefined) return;
+
+    const shield = this.shieldPickups.create(this.lanes[lane], -40, "shieldSprite").setDepth(8);
+    shield.body.setSize(26, 30).setOffset(7, 5);
+    shield.setData("speed", Math.max(175, this.getObstacleSpeed() - 80));
+    shield.setData("spawnTime", now);
+
+    this.activeShieldPickup = shield;
+    this.lastShieldSpawnTime = now;
+    this.centerHint.setText(this.t("shieldAppeared"));
+    this.time.delayedCall(800, () => {
+      if (!this.levelFinished && !this.isPaused && this.state.shield === 0) this.centerHint.setText(`${this.t("targetScore")}: ${this.cfg.targetScore}`);
+    });
+  }
+
   finishLevel() {
     this.levelFinished = true;
     this.obstacles.clear(true, true);
     this.coins.clear(true, true);
     this.lifePickups.clear(true, true);
+    this.shieldPickups.clear(true, true);
 
     this.centerHint.setText(this.t("levelClear"));
 
@@ -380,6 +564,7 @@ export class BaseRoomScene extends Phaser.Scene {
       ...this.state,
       level: this.cfg.roomNumber,
       phase: 1,
+      shield: Math.min(1, this.state.shield),
       fuel: Math.max(35, this.state.fuel)
     });
 
@@ -400,24 +585,27 @@ export class BaseRoomScene extends Phaser.Scene {
       victory,
       score: this.state.score,
       phase: this.state.phase,
-      level: this.cfg.roomNumber
+      level: this.cfg.roomNumber,
+      elapsed: this.state.elapsed,
+      bestCombo: this.state.bestCombo,
+      nearMisses: this.state.nearMisses
     });
   }
 
   restartRun() {
     this.stopBackgroundMusic();
-    this.registry.set("runState", { lives: 3, score: 0, phase: 1, level: 1, fuel: 100, elapsed: 0 });
+    this.registry.set("runState", { lives: 3, score: 0, phase: 1, level: 1, fuel: 100, shield: 0, combo: 0, bestCombo: 0, nearMisses: 0, elapsed: 0 });
     this.scene.start("Room1Scene");
   }
 
   goToMenu() {
     this.stopBackgroundMusic();
-    this.registry.set("runState", { lives: 3, score: 0, phase: 1, level: 1, fuel: 100, elapsed: 0 });
+    this.registry.set("runState", { lives: 3, score: 0, phase: 1, level: 1, fuel: 100, shield: 0, combo: 0, bestCombo: 0, nearMisses: 0, elapsed: 0 });
     this.scene.start("MenuScene");
   }
 
   tryMoveLane(dir) {
-    if (this.levelFinished || this.isPaused) return;
+    if (this.levelFinished || this.isPaused || this.isStarting) return;
     const nextLane = Phaser.Math.Clamp(this.currentLane + dir, 0, 2);
     if (nextLane === this.currentLane) return;
 
@@ -466,6 +654,7 @@ export class BaseRoomScene extends Phaser.Scene {
     }
 
     if (this.isPaused) return;
+    if (this.isStarting) return;
 
     if (Phaser.Input.Keyboard.JustDown(this.leftKey) || Phaser.Input.Keyboard.JustDown(this.aKey)) this.tryMoveLane(-1);
     if (Phaser.Input.Keyboard.JustDown(this.rightKey) || Phaser.Input.Keyboard.JustDown(this.dKey)) this.tryMoveLane(1);
@@ -493,9 +682,14 @@ export class BaseRoomScene extends Phaser.Scene {
         this.spawnCoin();
       }
       this.trySpawnLifePickup(now);
+      this.trySpawnShieldPickup(now);
 
       this.obstacles.getChildren().forEach((obstacle) => {
         obstacle.y += obstacle.getData("speed") * 0.016;
+        if (!obstacle.getData("nearMissChecked") && obstacle.y > this.player.y) {
+          obstacle.setData("nearMissChecked", true);
+          this.awardNearMiss(obstacle);
+        }
         if (obstacle.y > 620) obstacle.destroy();
       });
 
@@ -510,6 +704,15 @@ export class BaseRoomScene extends Phaser.Scene {
         if (life.y > 620 || livedFor > this.cfg.lifeVisibleMs) {
           if (this.activeLifePickup === life) this.activeLifePickup = null;
           life.destroy();
+        }
+      });
+
+      this.shieldPickups.getChildren().forEach((shield) => {
+        shield.y += shield.getData("speed") * 0.016;
+        const livedFor = now - shield.getData("spawnTime");
+        if (shield.y > 620 || livedFor > this.cfg.shieldVisibleMs) {
+          if (this.activeShieldPickup === shield) this.activeShieldPickup = null;
+          shield.destroy();
         }
       });
     }
