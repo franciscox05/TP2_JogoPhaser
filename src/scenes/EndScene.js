@@ -8,6 +8,9 @@ export class EndScene extends Phaser.Scene {
     this.score = Number(data?.score ?? 0);
     this.phase = Number(data?.phase ?? 1);
     this.level = Number(data?.level ?? 1);
+    this.elapsed = Number(data?.elapsed ?? 0);
+    this.bestCombo = Number(data?.bestCombo ?? 0);
+    this.nearMisses = Number(data?.nearMisses ?? 0);
   }
 
   create() {
@@ -18,6 +21,7 @@ export class EndScene extends Phaser.Scene {
 
     const title = this.victory ? dict.winTitle : dict.loseTitle;
     const subtitle = this.victory ? dict.winSubtitle : dict.loseSubtitle;
+    const bestScore = this.updateBestScore(this.score);
 
     const panel = this.add.rectangle(480, 270, 640, 380, 0x080604, 0.74);
     panel.setStrokeStyle(2, this.victory ? 0x57b348 : 0xc45858, 1);
@@ -35,7 +39,7 @@ export class EndScene extends Phaser.Scene {
 
     this.add.text(
       480,
-      265,
+      258,
       `${dict.hudScore}: ${this.score}  |  ${dict.hudPhase}: ${this.phase}  |  ${dict.hudRoom}: ${this.level}`,
       {
         fontSize: "22px",
@@ -43,14 +47,29 @@ export class EndScene extends Phaser.Scene {
       }
     ).setOrigin(0.5);
 
+    this.add.text(480, 290, this.format(dict.runStats, {
+      time: Math.round(this.elapsed),
+      nearMisses: this.nearMisses,
+      bestCombo: this.bestCombo
+    }), {
+      fontSize: "18px",
+      color: "#d9e7ff"
+    }).setOrigin(0.5);
+
     const medal = this.getMedalByScore(this.score);
-    this.add.text(480, 314, `${dict.medalLabel}: ${dict[medal.key]}`, {
+    this.add.text(480, 324, `${dict.medalLabel}: ${dict[medal.key]}`, {
       fontSize: "24px",
       color: medal.color,
       fontStyle: "bold"
     }).setOrigin(0.5);
 
-    this.add.text(480, 390, dict.restartHint, {
+    this.add.text(480, 360, `${bestScore.isNew ? dict.newBest : dict.bestScore}: ${bestScore.value}`, {
+      fontSize: "20px",
+      color: bestScore.isNew ? "#8de969" : "#d9e7ff",
+      fontStyle: bestScore.isNew ? "bold" : "normal"
+    }).setOrigin(0.5);
+
+    this.add.text(480, 405, dict.restartHint, {
       fontSize: "24px",
       color: "#e7be85",
       backgroundColor: "#44291a",
@@ -64,6 +83,18 @@ export class EndScene extends Phaser.Scene {
     if (score >= 3600) return { key: "medalGold", color: "#ffd54a" };
     if (score >= 2500) return { key: "medalSilver", color: "#dfe7f2" };
     return { key: "medalBronze", color: "#d68a4d" };
+  }
+
+  updateBestScore(score) {
+    const storageKey = "roadEscapeBestScore";
+    const previous = Number(localStorage.getItem(storageKey) ?? 0);
+    const value = Math.max(previous, score);
+    if (value !== previous) localStorage.setItem(storageKey, String(value));
+    return { value, isNew: value > previous };
+  }
+
+  format(template, values) {
+    return template.replace(/\{(\w+)\}/g, (_match, key) => values[key] ?? "");
   }
 
   drawBackground() {
@@ -82,7 +113,7 @@ export class EndScene extends Phaser.Scene {
 
   update() {
     if (Phaser.Input.Keyboard.JustDown(this.restartKey)) {
-      this.registry.set("runState", { lives: 3, score: 0, phase: 1, level: 1, fuel: 100, elapsed: 0 });
+      this.registry.set("runState", { lives: 3, score: 0, phase: 1, level: 1, fuel: 100, shield: 0, combo: 0, bestCombo: 0, nearMisses: 0, elapsed: 0 });
       this.scene.start("MenuScene");
     }
   }

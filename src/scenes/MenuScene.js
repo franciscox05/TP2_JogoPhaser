@@ -32,6 +32,10 @@ export class MenuScene extends Phaser.Scene {
       backgroundColor: "#14608a",
       padding: { left: 20, right: 20, top: 10, bottom: 10 }
     }).setOrigin(0.5);
+    this.startText.setInteractive({ useHandCursor: true });
+    this.startText.on("pointerover", () => this.startText.setStyle({ backgroundColor: "#1f7db0" }));
+    this.startText.on("pointerout", () => this.startText.setStyle({ backgroundColor: "#14608a" }));
+    this.startText.on("pointerdown", () => this.startGame());
 
     this.langHintText = this.add.text(480, 366, "", {
       fontSize: "19px",
@@ -99,9 +103,13 @@ export class MenuScene extends Phaser.Scene {
     }
 
     if (Phaser.Input.Keyboard.JustDown(this.enterKey)) {
-      this.registry.set("runState", { lives: 3, score: 0, phase: 1, level: 1, fuel: 100, elapsed: 0 });
-      this.sound.play("engineStart");
-      this.scene.start("Room1Scene");
+      this.startGame();
     }
+  }
+
+  startGame() {
+    this.registry.set("runState", { lives: 3, score: 0, phase: 1, level: 1, fuel: 100, shield: 0, combo: 0, bestCombo: 0, nearMisses: 0, elapsed: 0 });
+    this.sound.play("engineStart");
+    this.scene.start("Room1Scene");
   }
 }
