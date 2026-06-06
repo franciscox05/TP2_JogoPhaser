@@ -8,6 +8,8 @@ export class BootScene extends Phaser.Scene {
 
   preload() {
     this.load.audio("engineStart", "./assets/audio/start.mp3");
+    this.load.audio("engineLoop", "./assets/audio/engine_loop.mp3");
+    
     this.load.svg("carroSprite", "./assets/images/carro.svg");
     this.load.svg("taxiSprite", "./assets/images/taxi.svg");
     this.load.svg("gasolinaSprite", "./assets/images/gazolina.svg");
