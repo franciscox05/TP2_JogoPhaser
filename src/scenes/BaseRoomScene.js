@@ -91,6 +91,9 @@ export class BaseRoomScene extends Phaser.Scene {
         }
       }
     });
+    // Ativa o som do motor em loop com volume moderado (40%)
+    this.engineAudio = this.sound.add("engineLoop", { loop: true, volume: 0.4 });
+    this.engineAudio.play();
   }
 
   createTrackBackground() {
@@ -569,7 +572,10 @@ export class BaseRoomScene extends Phaser.Scene {
     });
 
     this.time.delayedCall(1000, () => {
+      // Para o motor antes de saltar para o próximo nível
+      if (this.engineAudio) this.engineAudio.stop(); 
       this.stopBackgroundMusic();
+      
       if (this.cfg.final) {
         this.endRun(true);
       } else {
@@ -579,6 +585,7 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   endRun(victory) {
+    if (this.engineAudio) this.engineAudio.stop();
     this.stopBackgroundMusic();
     this.registry.set("runState", this.state);
     this.scene.start("EndScene", {
@@ -593,12 +600,16 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   restartRun() {
+    // Para o motor antes de reiniciar a partida
+    if (this.engineAudio) this.engineAudio.stop(); 
     this.stopBackgroundMusic();
     this.registry.set("runState", { lives: 3, score: 0, phase: 1, level: 1, fuel: 100, shield: 0, combo: 0, bestCombo: 0, nearMisses: 0, elapsed: 0 });
     this.scene.start("Room1Scene");
   }
 
   goToMenu() {
+    // Para o motor antes de voltar ao menu principal
+    if (this.engineAudio) this.engineAudio.stop(); 
     this.stopBackgroundMusic();
     this.registry.set("runState", { lives: 3, score: 0, phase: 1, level: 1, fuel: 100, shield: 0, combo: 0, bestCombo: 0, nearMisses: 0, elapsed: 0 });
     this.scene.start("MenuScene");
@@ -651,6 +662,12 @@ export class BaseRoomScene extends Phaser.Scene {
 
     if (Phaser.Input.Keyboard.JustDown(this.pauseKey)) {
       this.togglePause();
+      
+      // GESTÃO DE ÁUDIO NA PAUSA: Trava ou retoma o motor conforme o estado do jogo
+      if (this.engineAudio) {
+        if (this.isPaused) this.engineAudio.pause();
+        else this.engineAudio.resume();
+      }
     }
 
     if (this.isPaused) return;
@@ -661,6 +678,17 @@ export class BaseRoomScene extends Phaser.Scene {
 
     if (!this.levelFinished) {
       const speed = this.getObstacleSpeed();
+
+      // --- DINÂMICA DO SOM DO MOTOR ---
+      if (this.engineAudio) {
+        if (this.engineAudio.isPaused) this.engineAudio.resume();
+        
+        const currentScore = this.state.score || 0;
+        const targetRate = Math.min(2, 1 + (currentScore * 0.002));
+        
+        this.engineAudio.setRate(targetRate);
+      }
+      // ---------------------------------
 
       this.roadLines.getChildren().forEach((line) => {
         line.y += speed * 0.18;
