@@ -12,7 +12,7 @@
   "hudKeys": "Objetivos",
   "hudScore": "Puntos",
   "hudPhase": "Fase",
-  "hudControls": "A/IZQ, D/DER o tactil | P pausa | L idioma",
+  "hudControls": "A/IZQ D/DER o tactil | P pausa | L idioma (PT/EN/ES)",
   "hudObjective": "Objetivo",
   "roomIntro": "Nivel {room} - llega a {score} puntos",
   "targetScore": "Meta de puntos",
@@ -43,6 +43,7 @@
   "winSubtitle": "Completaste todas las pistas.",
   "loseTitle": "Game Over",
   "loseSubtitle": "Te quedaste sin vidas.",
+  "loseSubtitleFuel": "Te quedaste sin combustible.",
   "restartHint": "Pulsa R para volver al menu",
   "playAgain": "Jugar de Nuevo",
   "backToMenu": "Volver al Menu"

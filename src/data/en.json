@@ -12,7 +12,7 @@
   "hudKeys": "Objectives",
   "hudScore": "Score",
   "hudPhase": "Phase",
-  "hudControls": "A/LEFT, D/RIGHT or touch | P pause | L language",
+  "hudControls": "A/LEFT D/RIGHT or touch | P pause | L language (PT/EN/ES)",
   "hudObjective": "Objective",
   "roomIntro": "Level {room} - reach {score} points",
   "targetScore": "Target score",
@@ -43,6 +43,7 @@
   "winSubtitle": "You completed all tracks.",
   "loseTitle": "Game Over",
   "loseSubtitle": "You ran out of lives.",
+  "loseSubtitleFuel": "You ran out of fuel.",
   "restartHint": "Press R to return to menu",
   "playAgain": "Play Again",
   "backToMenu": "Back to Menu"
