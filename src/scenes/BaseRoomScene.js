@@ -80,7 +80,7 @@ export class BaseRoomScene extends Phaser.Scene {
 
         if (this.state.fuel <= 0) {
           this.centerHint.setText(this.t("fuelEmpty"));
-          this.endRun(false);
+          this.endRun(false, "fuel");
           return;
         }
 
@@ -646,7 +646,7 @@ export class BaseRoomScene extends Phaser.Scene {
     });
   }
 
-  endRun(victory) {
+  endRun(victory, loseReason = "lives") {
     if (this._transitioning) return;
     this._transitioning = true;
     this.levelFinished = true;
@@ -657,6 +657,7 @@ export class BaseRoomScene extends Phaser.Scene {
       this.registry.set("runState", this.state);
       this.scene.start("EndScene", {
         victory,
+        loseReason,
         score: this.state.score,
         phase: this.state.phase,
         level: this.cfg.roomNumber,

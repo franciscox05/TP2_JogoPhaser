@@ -4,12 +4,13 @@ export class EndScene extends Phaser.Scene {
   }
 
   init(data) {
-    this.victory = Boolean(data?.victory);
-    this.score = Number(data?.score ?? 0);
-    this.phase = Number(data?.phase ?? 1);
-    this.level = Number(data?.level ?? 1);
-    this.elapsed = Number(data?.elapsed ?? 0);
-    this.bestCombo = Number(data?.bestCombo ?? 0);
+    this.victory    = Boolean(data?.victory);
+    this.loseReason = data?.loseReason ?? "lives";
+    this.score      = Number(data?.score ?? 0);
+    this.phase      = Number(data?.phase ?? 1);
+    this.level      = Number(data?.level ?? 1);
+    this.elapsed    = Number(data?.elapsed ?? 0);
+    this.bestCombo  = Number(data?.bestCombo ?? 0);
     this.nearMisses = Number(data?.nearMisses ?? 0);
   }
 
@@ -21,7 +22,9 @@ export class EndScene extends Phaser.Scene {
     const dict = this.registry.get("i18n")[lang];
 
     const title = this.victory ? dict.winTitle : dict.loseTitle;
-    const subtitle = this.victory ? dict.winSubtitle : dict.loseSubtitle;
+    const subtitle = this.victory
+      ? dict.winSubtitle
+      : (this.loseReason === "fuel" ? dict.loseSubtitleFuel : dict.loseSubtitle);
     const bestScore = this.updateBestScore(this.score);
 
     const borderColor = this.victory ? 0x57b348 : 0xc45858;
