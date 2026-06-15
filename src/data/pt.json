@@ -43,5 +43,7 @@
   "winSubtitle": "Completaste todas as pistas.",
   "loseTitle": "Game Over",
   "loseSubtitle": "Ficaste sem vidas.",
-  "restartHint": "Pressiona R para reiniciar"
+  "restartHint": "Pressiona R para voltar ao menu",
+  "playAgain": "Jogar de Novo",
+  "backToMenu": "Voltar ao Menu"
 }

@@ -47,6 +47,7 @@ export class BaseRoomScene extends Phaser.Scene {
     this.levelFinished = false;
     this.isPaused = false;
     this.isStarting = true;
+    this._transitioning = false;
 
     this.physics.add.collider(this.player, this.trackWalls);
     this.physics.add.overlap(this.player, this.obstacles, this.onHitObstacle, null, this);
@@ -91,9 +92,13 @@ export class BaseRoomScene extends Phaser.Scene {
         }
       }
     });
-    // Ativa o som do motor em loop com volume moderado (40%)
-    this.engineAudio = this.sound.add("engineLoop", { loop: true, volume: 0.4 });
-    this.engineAudio.play();
+
+    if (this.cache.audio.has("engineLoop")) {
+      this.engineAudio = this.sound.add("engineLoop", { loop: true, volume: 0.4 });
+      this.engineAudio.play();
+    }
+
+    this.cameras.main.fadeIn(350, 0, 0, 0);
   }
 
   createTrackBackground() {
@@ -148,6 +153,14 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   createGeneratedTextures() {
+    if (!this.textures.exists("particleSprite")) {
+      const p = this.add.graphics();
+      p.fillStyle(0xffffff, 1);
+      p.fillCircle(5, 5, 5);
+      p.generateTexture("particleSprite", 10, 10);
+      p.destroy();
+    }
+
     if (!this.textures.exists("lifeSprite")) {
       const life = this.add.graphics();
       life.fillStyle(0xe74c3c, 1);
@@ -289,6 +302,26 @@ export class BaseRoomScene extends Phaser.Scene {
     return this.t(k).replace(/\{(\w+)\}/g, (_match, key) => values[key] ?? "");
   }
 
+  playSound(key, config = {}) {
+    if (this.cache.audio.has(key)) {
+      this.sound.play(key, config);
+    }
+  }
+
+  addParticleBurst(x, y, tint, count) {
+    const emitter = this.add.particles(x, y, "particleSprite", {
+      speed: { min: 80, max: 210 },
+      scale: { start: 0.9, end: 0 },
+      alpha: { start: 1, end: 0 },
+      lifespan: 500,
+      tint,
+      emitting: false,
+      depth: 15
+    });
+    emitter.explode(count);
+    this.time.delayedCall(600, () => emitter.destroy());
+  }
+
   showLevelIntro() {
     this.centerHint.setText(this.format("roomIntro", { room: this.cfg.roomNumber, score: this.cfg.targetScore }));
     this.time.delayedCall(1300, () => {
@@ -325,6 +358,8 @@ export class BaseRoomScene extends Phaser.Scene {
 
     if (nextPhase !== this.state.phase) {
       this.state.phase = nextPhase;
+      this.playSound("phaseUp", { volume: 0.6 });
+      this.addParticleBurst(this.player.x, this.player.y - 50, 0xffd700, 14);
       this.centerHint.setText(`${this.t("phaseUp")} ${nextPhase}`);
       this.time.delayedCall(1200, () => {
         if (!this.levelFinished && !this.isPaused) this.centerHint.setText(`${this.t("targetScore")}: ${this.cfg.targetScore}`);
@@ -375,10 +410,20 @@ export class BaseRoomScene extends Phaser.Scene {
     const lane = order.find((idx) => this.canSpawnObstacleInLane(idx));
     if (lane === undefined) return;
 
+    const isTruck = Phaser.Math.Between(1, 8) === 1;
     const obstacle = this.obstacles.create(this.lanes[lane], -70, "taxiSprite").setDepth(8);
-    obstacle.body.setSize(58, 110).setOffset(22, 10);
-    obstacle.setData("speed", this.getObstacleSpeed());
+
+    if (isTruck) {
+      obstacle.setScale(1.35).setTint(0xff8c00);
+      obstacle.body.setSize(72, 110).setOffset(16, 8);
+      obstacle.setData("speed", this.getObstacleSpeed() * 0.65);
+    } else {
+      obstacle.body.setSize(58, 110).setOffset(22, 10);
+      obstacle.setData("speed", this.getObstacleSpeed());
+    }
+
     obstacle.setData("lane", lane);
+    obstacle.setData("isTruck", isTruck);
   }
 
   spawnCoin() {
@@ -403,6 +448,8 @@ export class BaseRoomScene extends Phaser.Scene {
       this.state.combo = 0;
       this.player.setTint(0x66d9ff);
       this.cameras.main.shake(90, 0.004);
+      this.playSound("collision", { volume: 0.4 });
+      this.addParticleBurst(this.player.x, this.player.y, 0x66d9ff, 6);
       this.centerHint.setText(this.t("shieldBlocked"));
       this.time.delayedCall(280, () => {
         this.player.clearTint();
@@ -418,6 +465,8 @@ export class BaseRoomScene extends Phaser.Scene {
     this.state.fuel = Math.max(0, this.state.fuel - this.cfg.hitFuelPenalty);
     this.player.setTint(0xff4d4d);
     this.cameras.main.shake(120, 0.007);
+    this.playSound("collision", { volume: 0.75 });
+    this.addParticleBurst(this.player.x, this.player.y, 0xff4444, 10);
     this.centerHint.setText(this.t("hitObstacle"));
 
     this.time.delayedCall(260, () => {
@@ -434,9 +483,12 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   onCollectCoin(_player, coin) {
+    const cx = coin.x, cy = coin.y;
     coin.destroy();
     this.state.score += this.cfg.coinScore;
     this.state.fuel = Math.min(100, this.state.fuel + this.cfg.coinFuelBonus);
+    this.playSound("coin", { volume: 0.6 });
+    this.addParticleBurst(cx, cy, 0x00dd88, 8);
     this.centerHint.setText(this.t("coinCollected"));
     this.time.delayedCall(500, () => {
       if (!this.levelFinished && !this.isPaused) this.centerHint.setText(`${this.t("targetScore")}: ${this.cfg.targetScore}`);
@@ -446,9 +498,12 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   onCollectLife(_player, life) {
+    const lx = life.x, ly = life.y;
     life.destroy();
     this.activeLifePickup = null;
     this.state.lives = Math.min(3, this.state.lives + 1);
+    this.playSound("coin", { volume: 0.65 });
+    this.addParticleBurst(lx, ly, 0xff6699, 8);
     this.centerHint.setText(this.t("lifeCollected"));
     this.time.delayedCall(600, () => {
       if (!this.levelFinished && !this.isPaused) this.centerHint.setText(`${this.t("targetScore")}: ${this.cfg.targetScore}`);
@@ -457,9 +512,12 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   onCollectShield(_player, shield) {
+    const sx = shield.x, sy = shield.y;
     shield.destroy();
     this.activeShieldPickup = null;
     this.state.shield = Math.min(1, this.state.shield + 1);
+    this.playSound("coin", { volume: 0.6 });
+    this.addParticleBurst(sx, sy, 0x66d9ff, 8);
     this.centerHint.setText(this.t("shieldCollected"));
     this.player.setTint(0x66d9ff);
     this.time.delayedCall(550, () => {
@@ -556,11 +614,13 @@ export class BaseRoomScene extends Phaser.Scene {
 
   finishLevel() {
     this.levelFinished = true;
+    this._transitioning = true;
     this.obstacles.clear(true, true);
     this.coins.clear(true, true);
     this.lifePickups.clear(true, true);
     this.shieldPickups.clear(true, true);
 
+    this.playSound("levelClear", { volume: 0.8 });
     this.centerHint.setText(this.t("levelClear"));
 
     this.registry.set("runState", {
@@ -571,48 +631,64 @@ export class BaseRoomScene extends Phaser.Scene {
       fuel: Math.max(35, this.state.fuel)
     });
 
-    this.time.delayedCall(1000, () => {
-      // Para o motor antes de saltar para o próximo nível
-      if (this.engineAudio) this.engineAudio.stop(); 
-      this.stopBackgroundMusic();
-      
+    this.time.delayedCall(900, () => {
+      if (this.engineAudio) this.engineAudio.stop();
       if (this.cfg.final) {
+        this._transitioning = false; // deixa endRun gerir a sua propria transicao
         this.endRun(true);
       } else {
-        this.scene.start(this.cfg.nextScene);
+        this.cameras.main.fadeOut(400, 0, 0, 0);
+        this.cameras.main.once("camerafadeoutcomplete", () => {
+          this.stopBackgroundMusic();
+          this.scene.start(this.cfg.nextScene);
+        });
       }
     });
   }
 
   endRun(victory) {
+    if (this._transitioning) return;
+    this._transitioning = true;
+    this.levelFinished = true;
     if (this.engineAudio) this.engineAudio.stop();
-    this.stopBackgroundMusic();
-    this.registry.set("runState", this.state);
-    this.scene.start("EndScene", {
-      victory,
-      score: this.state.score,
-      phase: this.state.phase,
-      level: this.cfg.roomNumber,
-      elapsed: this.state.elapsed,
-      bestCombo: this.state.bestCombo,
-      nearMisses: this.state.nearMisses
+    this.cameras.main.fadeOut(500, 0, 0, 0);
+    this.cameras.main.once("camerafadeoutcomplete", () => {
+      this.stopBackgroundMusic();
+      this.registry.set("runState", this.state);
+      this.scene.start("EndScene", {
+        victory,
+        score: this.state.score,
+        phase: this.state.phase,
+        level: this.cfg.roomNumber,
+        elapsed: this.state.elapsed,
+        bestCombo: this.state.bestCombo,
+        nearMisses: this.state.nearMisses
+      });
     });
   }
 
   restartRun() {
-    // Para o motor antes de reiniciar a partida
-    if (this.engineAudio) this.engineAudio.stop(); 
-    this.stopBackgroundMusic();
-    this.registry.set("runState", { lives: 3, score: 0, phase: 1, level: 1, fuel: 100, shield: 0, combo: 0, bestCombo: 0, nearMisses: 0, elapsed: 0 });
-    this.scene.start("Room1Scene");
+    if (this._transitioning) return;
+    this._transitioning = true;
+    if (this.engineAudio) this.engineAudio.stop();
+    this.cameras.main.fadeOut(350, 0, 0, 0);
+    this.cameras.main.once("camerafadeoutcomplete", () => {
+      this.stopBackgroundMusic();
+      this.registry.set("runState", { lives: 3, score: 0, phase: 1, level: 1, fuel: 100, shield: 0, combo: 0, bestCombo: 0, nearMisses: 0, elapsed: 0 });
+      this.scene.start("Room1Scene");
+    });
   }
 
   goToMenu() {
-    // Para o motor antes de voltar ao menu principal
-    if (this.engineAudio) this.engineAudio.stop(); 
-    this.stopBackgroundMusic();
-    this.registry.set("runState", { lives: 3, score: 0, phase: 1, level: 1, fuel: 100, shield: 0, combo: 0, bestCombo: 0, nearMisses: 0, elapsed: 0 });
-    this.scene.start("MenuScene");
+    if (this._transitioning) return;
+    this._transitioning = true;
+    if (this.engineAudio) this.engineAudio.stop();
+    this.cameras.main.fadeOut(350, 0, 0, 0);
+    this.cameras.main.once("camerafadeoutcomplete", () => {
+      this.stopBackgroundMusic();
+      this.registry.set("runState", { lives: 3, score: 0, phase: 1, level: 1, fuel: 100, shield: 0, combo: 0, bestCombo: 0, nearMisses: 0, elapsed: 0 });
+      this.scene.start("MenuScene");
+    });
   }
 
   tryMoveLane(dir) {
@@ -631,7 +707,7 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   togglePause() {
-    if (this.levelFinished) return;
+    if (this.levelFinished || this._transitioning) return;
     this.isPaused = !this.isPaused;
     this.physics.world.isPaused = this.isPaused;
 
@@ -650,9 +726,12 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   update() {
+    if (this._transitioning) return;
+
     if (Phaser.Input.Keyboard.JustDown(this.langKey)) {
       const c = this.registry.get("lang") || "pt";
-      this.registry.set("lang", c === "pt" ? "en" : "pt");
+      const langs = ["pt", "en", "es"];
+      this.registry.set("lang", langs[(langs.indexOf(c) + 1) % langs.length]);
       this.pauseTitle.setText(this.t("paused"));
       this.pauseContinueBtn.text.setText(this.t("pauseContinue"));
       this.pauseRestartBtn.text.setText(this.t("pauseRestart"));
@@ -748,7 +827,8 @@ export class BaseRoomScene extends Phaser.Scene {
 
   startBackgroundMusic() {
     if (this.bgMusic && this.bgMusic.isPlaying) return;
-    this.bgMusic = this.sound.add("engineStart", { loop: true, volume: 0.18 });
+    const key = this.cache.audio.has("bgMusic") ? "bgMusic" : "engineStart";
+    this.bgMusic = this.sound.add(key, { loop: true, volume: 0.18 });
     this.bgMusic.play();
   }
 

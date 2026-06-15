@@ -43,5 +43,7 @@
   "winSubtitle": "You completed all tracks.",
   "loseTitle": "Game Over",
   "loseSubtitle": "You ran out of lives.",
-  "restartHint": "Press R to restart"
+  "restartHint": "Press R to return to menu",
+  "playAgain": "Play Again",
+  "backToMenu": "Back to Menu"
 }

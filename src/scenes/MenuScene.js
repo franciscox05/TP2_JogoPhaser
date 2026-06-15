@@ -4,6 +4,7 @@ export class MenuScene extends Phaser.Scene {
   }
 
   create() {
+    this._transitioning = false;
     this.enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
     this.toggleLangKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
 
@@ -57,6 +58,7 @@ export class MenuScene extends Phaser.Scene {
     });
 
     this.refreshTexts();
+    this.cameras.main.fadeIn(350, 0, 0, 0);
   }
 
   drawBackground() {
@@ -77,11 +79,8 @@ export class MenuScene extends Phaser.Scene {
       this.add.rectangle(574, y + 35, 6, 45, 0xffffff, 0.55);
     }
 
-    // Headlights/glow
     this.add.circle(430, 445, 120, 0x66d1ff, 0.14);
     this.add.circle(530, 445, 120, 0x66d1ff, 0.14);
-
-    // Car silhouette hint
     this.add.rectangle(480, 445, 120, 52, 0x0f2b45, 0.95).setStrokeStyle(2, 0x66d1ff, 0.8);
   }
 
@@ -96,9 +95,12 @@ export class MenuScene extends Phaser.Scene {
   }
 
   update() {
+    if (this._transitioning) return;
+
     if (Phaser.Input.Keyboard.JustDown(this.toggleLangKey)) {
       const current = this.registry.get("lang") || "pt";
-      this.registry.set("lang", current === "pt" ? "en" : "pt");
+      const langs = ["pt", "en", "es"];
+      this.registry.set("lang", langs[(langs.indexOf(current) + 1) % langs.length]);
       this.refreshTexts();
     }
 
@@ -108,8 +110,17 @@ export class MenuScene extends Phaser.Scene {
   }
 
   startGame() {
-    this.registry.set("runState", { lives: 3, score: 0, phase: 1, level: 1, fuel: 100, shield: 0, combo: 0, bestCombo: 0, nearMisses: 0, elapsed: 0 });
-    this.sound.play("engineStart");
-    this.scene.start("Room1Scene");
+    if (this._transitioning) return;
+    this._transitioning = true;
+    this.registry.set("runState", {
+      lives: 3, score: 0, phase: 1, level: 1,
+      fuel: 100, shield: 0, combo: 0, bestCombo: 0,
+      nearMisses: 0, elapsed: 0
+    });
+    this.cameras.main.fadeOut(350, 0, 0, 0);
+    this.cameras.main.once("camerafadeoutcomplete", () => {
+      this.sound.play("engineStart");
+      this.scene.start("Room1Scene");
+    });
   }
 }
