@@ -21,7 +21,7 @@ export class MenuScene extends Phaser.Scene {
       strokeThickness: 6
     }).setOrigin(0.5);
 
-    this.subtitle = this.add.text(480, 225, "3 LANES - 3 LEVELS - 1 ESCAPE", {
+    this.subtitle = this.add.text(480, 225, "", {
       fontSize: "20px",
       color: "#cdefff",
       letterSpacing: 2
@@ -89,6 +89,7 @@ export class MenuScene extends Phaser.Scene {
     const dict = this.registry.get("i18n")[lang];
 
     this.titleText.setText(dict.gameTitle);
+    this.subtitle.setText(dict.menuSubtitle);
     this.startText.setText(dict.menuStart);
     this.langHintText.setText(dict.menuLang);
     this.langCurrentText.setText(`${dict.menuCurrentLang}: ${lang.toUpperCase()}`);

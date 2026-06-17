@@ -1,5 +1,6 @@
 {
   "gameTitle": "Road Escape",
+  "menuSubtitle": "3 LANES - 3 LEVELS - 1 ESCAPE",
   "menuStart": "Press ENTER to start",
   "menuLang": "Press E to change language",
   "menuCurrentLang": "Language",
@@ -37,7 +38,7 @@
   "newBest": "New best!",
   "runStats": "Time: {time}s | Near misses: {nearMisses} | Best combo: x{bestCombo}",
   "medalGold": "Gold",
-  "medalSilver": "Prata",
+  "medalSilver": "Silver",
   "medalBronze": "Bronze",
   "winTitle": "Victory!",
   "winSubtitle": "You completed all tracks.",

@@ -23,6 +23,7 @@ export class BaseRoomScene extends Phaser.Scene {
 
     this.lanes = [300, 480, 660];
     this.currentLane = 1;
+    this.lastLaneChangeTime = -9999;
 
     this.createTrackBackground();
     this.createTrackLimits();
@@ -208,24 +209,24 @@ export class BaseRoomScene extends Phaser.Scene {
 
   createHud() {
     // --- PAINEL PRINCIPAL DO HUD ---
-    const panel = this.add.rectangle(300, 40, 580, 72, 0x000000, 0.68).setDepth(30);
+    const panel = this.add.rectangle(340, 40, 660, 72, 0x000000, 0.68).setDepth(30);
     panel.setStrokeStyle(2, 0x69bfff, 0.9);
 
-    this.hudText = this.add.text(26, 16, "", {
-      fontSize: "18px",
+    this.hudText = this.add.text(44, 16, "", {
+      fontSize: "16px",
       color: "#ffffff",
       stroke: "#000000",
       strokeThickness: 4
     }).setDepth(31);
 
     this.infoText = this.add.text(26, 44, "", {
-      fontSize: "14px",
+      fontSize: "13px",
       color: "#dfefff",
       stroke: "#000000",
       strokeThickness: 3
     }).setDepth(31);
 
-    this.progressBarBg = this.add.rectangle(26, 68, 552, 8, 0x101820, 0.95).setOrigin(0, 0.5).setDepth(31);
+    this.progressBarBg = this.add.rectangle(26, 68, 620, 8, 0x101820, 0.95).setOrigin(0, 0.5).setDepth(31);
     this.progressBarFill = this.add.rectangle(26, 68, 1, 8, 0x69bfff, 1).setOrigin(0, 0.5).setDepth(32);
 
     // --- PAINEL E BARRAS DE COMBUSTÍVEL ---
@@ -243,13 +244,9 @@ export class BaseRoomScene extends Phaser.Scene {
     this.hudIcons = this.add.graphics().setDepth(31);
     
     this.hudIcons.fillStyle(0xe74c3c, 1);
-    this.hudIcons.fillCircle(535, 30, 6);
-    this.hudIcons.fillCircle(547, 30, 6);
-    this.hudIcons.fillTriangle(529, 32, 553, 32, 541, 46);
-
-    this.hudIcons.fillStyle(0xf1c40f, 1);
-    this.hudIcons.fillRect(690, 24, 14, 20);
-    this.hudIcons.fillRect(704, 27, 3, 10);
+    this.hudIcons.fillCircle(28, 27, 5);
+    this.hudIcons.fillCircle(38, 27, 5);
+    this.hudIcons.fillTriangle(23, 29, 43, 29, 33, 42);
 
     // --- INDICAÇÕES E OVERLAY DE PAUSA ---
     this.centerHint = this.add.text(480, 510, "", {
@@ -412,7 +409,7 @@ export class BaseRoomScene extends Phaser.Scene {
 
     const roomStartScore = this.cfg.previousTargetScore ?? 0;
     const roomProgress = Phaser.Math.Clamp((this.state.score - roomStartScore) / (this.cfg.targetScore - roomStartScore), 0, 1);
-    this.progressBarFill.width = 552 * roomProgress;
+    this.progressBarFill.width = 620 * roomProgress;
 
     const ratio = Phaser.Math.Clamp(this.state.fuel / 100, 0, 1);
     this.fuelBarFill.width = 180 * ratio;
@@ -451,7 +448,9 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   getObstacleSpawnDelay() {
-    return Math.max(this.cfg.minSpawnDelay ?? 620, this.cfg.baseSpawnDelay - (this.state.phase - 1) * 90);
+    const phaseReduction = this.cfg.phaseSpawnReduction ?? 90;
+    const levelReduction = (this.cfg.roomNumber - 1) * (this.cfg.levelSpawnReduction ?? 25);
+    return Math.max(this.cfg.minSpawnDelay ?? 620, this.cfg.baseSpawnDelay - (this.state.phase - 1) * phaseReduction - levelReduction);
   }
 
   hasLaneSpace(group, laneIndex, minGap) {
@@ -459,8 +458,11 @@ export class BaseRoomScene extends Phaser.Scene {
     return !group.getChildren().some((obj) => obj.active && Math.abs(obj.x - laneX) < 5 && obj.y < minGap);
   }
 
-  getBlockedLanesAhead(extraLane = null) {
-    const blocked = new Set(extraLane === null ? [] : [extraLane]);
+  getBlockedLanesAhead(extraLanes = []) {
+    const laneList = Array.isArray(extraLanes)
+      ? extraLanes
+      : (extraLanes === null ? [] : [extraLanes]);
+    const blocked = new Set(laneList);
     const playerY = this.player?.y ?? 450;
 
     this.obstacles.getChildren().forEach((obstacle) => {
@@ -473,32 +475,67 @@ export class BaseRoomScene extends Phaser.Scene {
     return blocked;
   }
 
-  canSpawnObstacleInLane(lane) {
-    if (!this.hasLaneSpace(this.obstacles, lane, this.cfg.obstacleMinGap ?? 280)) return false;
-    return this.getBlockedLanesAhead(lane).size <= 2;
+  canSpawnObstacleWave(lanes) {
+    if (!lanes.every((lane) => this.hasLaneSpace(this.obstacles, lane, this.cfg.obstacleMinGap ?? 280))) return false;
+    return this.getBlockedLanesAhead(lanes).size <= 2;
   }
 
-  spawnObstacle() {
-    const order = Phaser.Utils.Array.Shuffle([0, 1, 2]);
-    const lane = order.find((idx) => this.canSpawnObstacleInLane(idx));
-    if (lane === undefined) return;
+  getDoubleObstacleChance() {
+    const base = this.cfg.doubleObstacleChance ?? 0.12;
+    const phaseBoost = (this.state.phase - 1) * (this.cfg.doubleObstaclePhaseBoost ?? 0.08);
+    const levelBoost = (this.cfg.roomNumber - 1) * (this.cfg.doubleObstacleLevelBoost ?? 0.04);
+    return Phaser.Math.Clamp(base + phaseBoost + levelBoost, 0, this.cfg.maxDoubleObstacleChance ?? 0.62);
+  }
 
-    const isTruck = Phaser.Math.Between(1, 8) === 1;
+  getPlayerLanePressureChance() {
+    const base = this.cfg.playerLanePressureChance ?? 0.45;
+    const phaseBoost = (this.state.phase - 1) * (this.cfg.playerLanePressurePhaseBoost ?? 0.08);
+    const levelBoost = (this.cfg.roomNumber - 1) * (this.cfg.playerLanePressureLevelBoost ?? 0.05);
+    return Phaser.Math.Clamp(base + phaseBoost + levelBoost, 0, this.cfg.maxPlayerLanePressureChance ?? 0.82);
+  }
+
+  createObstacleAtLane(lane, waveSize) {
+    const isTruck = waveSize === 1 && Phaser.Math.FloatBetween(0, 1) < (this.cfg.truckChance ?? 0.12);
     const obstacle = this.obstacles.create(this.lanes[lane], -70, "taxiSprite");
     obstacle.setDepth(8);
 
     if (isTruck) {
       obstacle.setScale(0.35).setTint(0xff8c00);
       obstacle.body.setSize(obstacle.width, obstacle.height, true);
-      obstacle.setData("speed", this.getObstacleSpeed() * 0.65);
+      obstacle.setData("speed", this.getObstacleSpeed() * (this.cfg.truckSpeedFactor ?? 0.68));
     } else {
       obstacle.setScale(0.22).clearTint();
       obstacle.body.setSize(obstacle.width, obstacle.height, true);
       obstacle.setData("speed", this.getObstacleSpeed());
     }
-  
+
     obstacle.setData("lane", lane);
     obstacle.setData("isTruck", isTruck);
+  }
+
+  spawnObstacle() {
+    const allWaves = [
+      [0], [1], [2],
+      [0, 1], [0, 2], [1, 2]
+    ];
+    const shouldDouble = Phaser.Math.FloatBetween(0, 1) < this.getDoubleObstacleChance();
+    const wantedSize = shouldDouble ? 2 : 1;
+    let candidates = allWaves.filter((wave) => wave.length === wantedSize && this.canSpawnObstacleWave(wave));
+
+    if (candidates.length === 0 && wantedSize === 2) {
+      candidates = allWaves.filter((wave) => wave.length === 1 && this.canSpawnObstacleWave(wave));
+    }
+
+    if (candidates.length === 0) return;
+
+    const pressureWaves = candidates.filter((wave) => wave.includes(this.currentLane));
+    if (pressureWaves.length > 0 && Phaser.Math.FloatBetween(0, 1) < this.getPlayerLanePressureChance()) {
+      candidates = pressureWaves;
+    }
+
+    candidates = Phaser.Utils.Array.Shuffle(candidates);
+    const wave = candidates[0];
+    wave.forEach((lane) => this.createObstacleAtLane(lane, wave.length));
   }
 
   spawnCoin() {
@@ -605,12 +642,13 @@ export class BaseRoomScene extends Phaser.Scene {
   awardNearMiss(obstacle) {
     const obstacleLane = obstacle.getData("lane");
     if (Math.abs(obstacleLane - this.currentLane) !== 1) return;
+    if (this.time.now - this.lastLaneChangeTime > (this.cfg.nearMissWindowMs ?? 850)) return;
 
     this.state.combo = Math.min(this.state.combo + 1, 9);
     this.state.bestCombo = Math.max(this.state.bestCombo, this.state.combo);
     this.state.nearMisses += 1;
 
-    const multiplier = Math.min(this.state.combo, 5);
+    const multiplier = Math.min(this.state.combo, this.cfg.nearMissComboCap ?? 3);
     const bonus = this.cfg.nearMissScore * multiplier;
     this.state.score += bonus;
 
@@ -773,6 +811,7 @@ export class BaseRoomScene extends Phaser.Scene {
     if (nextLane === this.currentLane) return;
 
     this.currentLane = nextLane;
+    this.lastLaneChangeTime = this.time.now;
 
     this.tweens.add({
       targets: this.player,

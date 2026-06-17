@@ -1,82 +1,170 @@
-# [Nome do Jogo / Projeto de Phaser]
+# Road Escape - Phaser 3
 
-## 👥 Autores
-* **Afonso Barbosa** - Nº 33157
-* **Francisco Gomes** - Nº 33400
+## Autores
 
----
+- **Afonso Barbosa** - Nº 33157
+- **Francisco Gomes** - Nº 33400
 
-## 🛠️ Instruções de Execução
+## Versao e Tecnologias
 
-O jogo foi desenvolvido utilizando a framework **Phaser 3** (Arcade Physics). Para executar o projeto localmente, siga os passos abaixo:
+- **Motor:** Phaser 3.90.0
+- **Inclusao do Phaser:** CDN em `index.html`
+- **Fisica:** Arcade Physics
+- **Linguagem:** JavaScript ES6+ com modulos
+- **Execucao local:** servidor HTTP estatico via `npm start` ou Live Server
 
-### Pré-requisitos
-É necessário um servidor local para contornar as restrições de CORS do browser ao carregar os assets (áudio e imagens). Recomendamos o uso do **VS Code** com a extensão **Live Server**, ou o Node.js.
+## Descricao do Jogo
 
-### Passo a Passo
-1. Faça o clone do repositório ou descompacte os ficheiros do projeto.
-2. Abra a pasta raiz do projeto no seu editor de código (ex: VS Code).
-3. Se usar o **Live Server**:
-   * Clique com o botão direito no ficheiro `index.html` e escolha **"Open with Live Server"**.
-4. Se usar **Node.js / npm** (via terminal):
-   * Instale um servidor estático global (se não tiver): `npm install -g http-server`
-   * Execute o servidor na raiz do projeto: `http-server`
-   * Abra o browser no endereço indicado (normalmente `http://localhost:8080`).
+**Road Escape** e um jogo 2D de avoidance/corrida em tres pistas. O jogador controla um carro e tem de sobreviver ao transito, recolher combustivel, evitar colisoes e atingir a meta de pontuacao de cada nivel.
 
----
+O jogo tem tres niveis com dificuldade progressiva. Cada nivel aumenta a velocidade, a frequencia de obstaculos, a probabilidade de ondas com duas pistas bloqueadas e o consumo de combustivel. A partida termina em vitoria quando o jogador completa o terceiro nivel, ou em derrota se ficar sem vidas ou sem combustivel.
 
-## 🎨 Aspetos Multimédia
+## Funcionalidades Implementadas
 
-Esta secção detalha a gestão, origem e otimização de todos os recursos visuais e sonoros integrados no motor de jogo durante a fase de desenvolvimento.
+- Menu principal com seletor de idioma.
+- Tres niveis jogaveis com progressao por pontuacao.
+- Sistema de score, vidas, combustivel, escudo, combos e quase-colisoes.
+- Obstaculos dinamicos com taxis e camioes raros.
+- Ondas de obstaculos justas: podem bloquear uma ou duas pistas, mas deixam sempre uma rota possivel.
+- Pickups de combustivel, vida extra e escudo.
+- Dificuldade progressiva por nivel e fase.
+- HUD com informacao de vidas, escudo, combo, score, nivel, objetivo e combustivel.
+- Menu de pausa com continuar, reiniciar, voltar ao menu, volume e mute.
+- Ecra final de vitoria/derrota com estatisticas, medalha e recorde local.
+- Suporte multilingue PT/EN/ES com ficheiros JSON.
+- Musica de fundo e efeitos sonoros por evento.
+- Controlo por teclado e botoes tacteis no ecra.
 
-### 🖼️ Elementos Gráficos e Otimização
+## Controlos
 
-| Asset | Formato | Dimensões Originais | Origem / Criação | Justificação Técnica de Resolução e Tamanho |
-| :--- | :---: | :---: | :---: | :--- |
-| `carro_anim.png` | PNG | 2790 x 1556 px | Edição / Criação Própria | Spritesheet de alta resolução contendo a animação do veículo do jogador. Dividida em frames de 465x518px para garantir a máxima nitidez em ecrãs modernos de alta densidade (Retina/4K). O redimensionamento para a estrada é feito via código (`setScale(0.15)`), permitindo manter a qualidade visual sem pixelização. |
-| `taxi_anim.png` | PNG | 400 x 400 px | OpenGameArt / Editado | Obstáculo dinâmico do jogo. O asset original continha um fundo falso que comprometia a renderização da pista. Foi editado manualmente (recurso ao *remove.bg*) para garantir transparência real alfa. A resolução foi otimizada para equilibrar o peso do repositório e a escala final de colisão na faixa (`setScale(0.22)`). |
-| `gazolina.svg` | SVG | Vetorial | Criação Própria | Item colecionável de combustível. Utiliza o formato vetorial (Scalable Vector Graphics), o que garante que o elemento mantém contornos perfeitamente nítidos em qualquer resolução de ecrã, com um peso de armazenamento praticamente nulo (poucos KB). |
-| `meta.svg` | SVG | Vetorial | Criação Própria | Linha de meta / objetivo. À semelhança do combustível, o formato SVG foi escolhido para permitir que a linha estique e se ajuste perfeitamente à largura total da pista de forma responsiva sem perder definição. |
+| Acao | Teclas / Input |
+| --- | --- |
+| Iniciar jogo | `ENTER` ou botao do menu |
+| Mudar de pista | `A` / `LEFT` e `D` / `RIGHT` |
+| Controlos tacteis | Botoes `<` e `>` no ecra |
+| Pausa | `P` |
+| Mudar idioma no menu | `E` |
+| Mudar idioma durante o jogo | `L` |
+| Reiniciar/voltar no fim | `R` ou botoes do ecra final |
 
-### 🔊 Elementos Sonoros (Áudio)
+## Como Executar
 
-Todos os ficheiros de áudio foram convertidos e comprimidos no formato **MP3**. Esta escolha justifica-se pela necessidade de garantir compatibilidade universal entre browsers modernos e tempos de carregamento (*preload*) extremamente reduzidos, evitando que o jogo congele no `BootScene`.
+### Opcao recomendada com Node.js
 
-* **`start.mp3`** (Origem: Freesound.org) - Efeito sonoro curto executado ao iniciar o motor do veículo.
-* **`engine_loop.mp3`** (Origem: Freesound.org) - Áudio de rotação do motor em loop contínuo, otimizado para reprodução fluida sem quebras audíveis.
-* **`bgmusic.mp3`** (Origem: OpenGameArt.org) - Banda sonora de fundo em loop para aumentar a imersão do jogador durante a corrida.
-* **`collision.mp3`** (Origem: Freesound.org) - Efeito de impacto reproduzido instantaneamente quando a hitbox do jogador colide com um obstáculo.
-* **`coin.mp3`** / **`phase_up.mp3`** (Origem: Freesound.org) - Feedback sonoro de recompensa ao interagir com itens ou subir de nível.
-* **`level_clear.mp3`** / **`win.mp3`** / **`lose.mp3`** (Origem: Freesound.org) - Áudios de transição de estado de jogo para assinalar o sucesso ou fim da partida.
+1. Instalar dependencias:
 
----
+   ```bash
+   npm install
+   ```
 
-## 📸 Demonstração Gráfica (Multimedia & Gameplay)
+2. Iniciar o servidor local:
 
-### Capturas de Ecrã (Screenshots)
+   ```bash
+   npm start
+   ```
 
-Abaixo encontram-se os registos visuais do jogo nas suas diferentes fases de execução. Os ficheiros físicos encontram-se guardados na diretoria `docs/screenshots/`.
+3. Abrir o endereco indicado no terminal, normalmente:
 
-#### Menu Principal
+   ```text
+   http://localhost:5173
+   ```
+
+### Opcao com VS Code Live Server
+
+1. Abrir a pasta raiz do projeto no VS Code.
+2. Clicar com o botao direito em `index.html`.
+3. Escolher **Open with Live Server**.
+
+> O jogo deve ser servido por HTTP local para evitar bloqueios de CORS no carregamento de modulos, JSON, imagens e audio.
+
+## Estrutura do Projeto
+
+```text
+.
+|-- index.html
+|-- package.json
+|-- src/
+|   |-- main.js
+|   |-- data/
+|   |   |-- pt.json
+|   |   |-- en.json
+|   |   `-- es.json
+|   `-- scenes/
+|       |-- BootScene.js
+|       |-- MenuScene.js
+|       |-- BaseRoomScene.js
+|       |-- Room1Scene.js
+|       |-- Room2Scene.js
+|       |-- Room3Scene.js
+|       `-- EndScene.js
+|-- assets/
+|   |-- images/
+|   `-- audio/
+`-- docs/
+    |-- screenshots/
+    `-- TP2_Phaser_2025.pdf
+```
+
+## Aspetos Multimedia
+
+### Elementos Graficos
+
+| Asset | Formato | Dimensoes / Tipo | Origem / Criacao | Justificacao |
+| --- | --- | --- | --- | --- |
+| `carro_anim.png` | PNG spritesheet | 2790 x 1556 px, frames 465 x 518 px | Edicao / criacao propria | Spritesheet do carro do jogador com animacao de luzes. E redimensionado no jogo com `setScale(0.15)` para manter boa nitidez. |
+| `taxi_anim.png` | PNG | 400 x 400 px | OpenGameArt / editado | Obstaculo principal. Foi editado para transparência e usado em escala reduzida (`setScale(0.22)`). |
+| `gazolina.svg` | SVG | Vetorial | Criacao propria | Pickup de combustivel leve e escalavel. |
+| `meta.svg` | SVG | Vetorial | Criacao propria | Usado como textura auxiliar para limites/objetivo, mantendo baixo peso. |
+| Texturas geradas em runtime | Phaser Graphics | Vetorial/runtime | Criacao propria | Particulas, vida extra e escudo sao gerados por codigo para evitar assets desnecessarios. |
+
+### Elementos Sonoros
+
+Todos os sons estao em **MP3**, um formato comprimido e compativel com browsers modernos.
+
+| Asset | Uso | Origem |
+| --- | --- | --- |
+| `start.mp3` | Inicio do jogo | Freesound.org |
+| `engine_loop.mp3` | Motor em loop | Freesound.org |
+| `bgmusic.mp3` | Musica de fundo | OpenGameArt.org |
+| `collision.mp3` | Colisao | Freesound.org |
+| `coin.mp3` | Recolha de pickup | Freesound.org |
+| `phase_up.mp3` | Subida de fase | Freesound.org |
+| `level_clear.mp3` | Nivel concluido | Freesound.org |
+| `win.mp3` | Vitoria | Freesound.org |
+| `lose.mp3` | Derrota | Freesound.org |
+
+## Capturas e Demonstracao
+
+### Menu Principal
+
 ![Menu Principal](docs/screenshots/menu.png)
 
-#### Corrida em Execução (Gameplay)
-*Demonstração do alinhamento perfeito de Hitboxes através do modo de debug físico ativo.*
+### Gameplay
+
 ![Gameplay](docs/screenshots/corrida.png)
 
-#### Menu de Pausa
+### Menu de Pausa
+
 ![Menu de Pausa](docs/screenshots/pausa.png)
 
-#### Écrã Final (Game Over / Vitória)
-![Écrã Final](docs/screenshots/ecra_final.png)
+### Ecras Finais
 
-![Ecrã de Derrota](docs/screenshots/derrota.png)
+![Ecra Final](docs/screenshots/ecra_final.png)
 
-### 📹 Demonstração em Movimento
-![Animação do Gameplay](docs/screenshots/gameplay.gif)
+![Ecra de Derrota](docs/screenshots/derrota.png)
 
----
+### GIF de Gameplay
 
-## 🌐 Demonstração Online (GitHub Pages)
-O projeto pode ser jogado diretamente no browser sem necessidade de instalações locais através do link:
-👉 **[Inserir link do GitHub Pages aqui, ex: https://utilizador.github.io/repositorio]**
+![Animacao do Gameplay](docs/screenshots/gameplay.gif)
+
+## Demonstracao Online Opcional
+
+GitHub Pages:
+
+https://franciscox05.github.io/TP2_JogoPhaser/
+
+## Entrega
+
+- Data de entrega: 19 de junho de 2026
+- Tag final esperada: `1.0`
+- Repositorio: https://github.com/franciscox05/TP2_JogoPhaser

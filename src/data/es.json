@@ -1,5 +1,6 @@
 {
   "gameTitle": "Road Escape",
+  "menuSubtitle": "3 CARRILES - 3 NIVELES - 1 ESCAPE",
   "menuStart": "Pulsa ENTER para empezar",
   "menuLang": "Pulsa E para cambiar idioma",
   "menuCurrentLang": "Idioma",
@@ -46,5 +47,9 @@
   "loseSubtitleFuel": "Te quedaste sin combustible.",
   "restartHint": "Pulsa R para volver al menu",
   "playAgain": "Jugar de Nuevo",
-  "backToMenu": "Volver al Menu"
+  "backToMenu": "Volver al Menu",
+  "volume": "Volumen",
+  "mute": "Silencio",
+  "on": "ACTIVADO",
+  "off": "DESACTIVADO"
 }
