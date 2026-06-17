@@ -31,6 +31,16 @@ export class BaseRoomScene extends Phaser.Scene {
     this.player.setCollideWorldBounds(true);
     this.player.body.setSize(this.player.width, this.player.height);
 
+    if (!this.anims.exists("luzesPlayer")) {
+      this.anims.create({
+        key: "luzesPlayer",
+        frames: this.anims.generateFrameNumbers("carroSprite", { frames: [0, 1] }),
+        frameRate: 4,
+        repeat: -1
+      });
+    }
+    this.player.play("luzesPlayer");
+
     this.obstacles = this.physics.add.group();
     this.coins = this.physics.add.group();
     this.lifePickups = this.physics.add.group();
@@ -99,7 +109,7 @@ export class BaseRoomScene extends Phaser.Scene {
     }
 
     this.cameras.main.fadeIn(350, 0, 0, 0);
-  }
+}
 
   createTrackBackground() {
     this.createGeneratedTextures();
