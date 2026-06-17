@@ -1,69 +1,82 @@
-# TP2 - Road Escape (Phaser 3)
+# [Nome do Jogo / Projeto de Phaser]
 
-## Elementos do Grupo
-- Francisco (...) - N. (...) 
-- Afonso (...) - N. (...)
+## 👥 Autores
+* **Afonso Barbosa** - Nº 33157
+* **Francisco Gomes** - Nº 33400
 
-## Phaser
-- Versao: 3.90.0
-- Inclusao: CDN em `index.html`
+---
 
-## Descricao do Jogo
-`Road Escape` e um jogo 2D de desvio e sobrevivencia em 3 pistas. O jogador controla um carro, evita taxis, recolhe combustivel e tenta completar 3 niveis com dificuldade progressiva.
+## 🛠️ Instruções de Execução
 
-## Regras e Progressao
-- Existem 3 niveis, cada um com uma meta de score.
-- Em cada nivel, a velocidade e o spawn de obstaculos aumentam nas fases internas 1, 2 e 3.
-- O jogador perde uma vida ao colidir com obstaculos.
-- O combustivel desce continuamente e aumenta ao apanhar pickups.
-- Pickups de vida extra aparecem apenas quando o jogador esta com 1 vida.
-- Pickups de escudo aparecem em situacoes de maior risco e bloqueiam uma colisao.
-- Passagens arriscadas junto a taxis em pistas adjacentes dao bonus de "quase" e aumentam o combo.
-- O HUD mostra vidas, escudo, score, fase, nivel, combustivel e progresso do objetivo.
-- O ecran final atribui medalha, mostra estatisticas da corrida e guarda o melhor score local.
-- Vitoria: completar o ultimo nivel.
-- Derrota: ficar sem vidas ou sem combustivel.
+O jogo foi desenvolvido utilizando a framework **Phaser 3** (Arcade Physics). Para executar o projeto localmente, siga os passos abaixo:
 
-## Controles
-- `A / LEFT`: mudar para a pista da esquerda
-- `D / RIGHT`: mudar para a pista da direita
-- Botoes `<` e `>` no ecran: controlo por toque/click
-- `P`: pausa, com opcoes Continuar / Reiniciar / Menu
-- `L`: alternar idioma PT/EN durante o jogo
-- `E`: alternar idioma no menu
-- `ENTER` ou clique no botao inicial: iniciar jogo
-- `R`: reiniciar no ecran de fim
+### Pré-requisitos
+É necessário um servidor local para contornar as restrições de CORS do browser ao carregar os assets (áudio e imagens). Recomendamos o uso do **VS Code** com a extensão **Live Server**, ou o Node.js.
 
-## Como Executar
-1. Na raiz do projeto:
-```bash
-npm install
-npm start
-```
-2. Abrir no browser:
-- `http://localhost:5173`
+### Passo a Passo
+1. Faça o clone do repositório ou descompacte os ficheiros do projeto.
+2. Abra a pasta raiz do projeto no seu editor de código (ex: VS Code).
+3. Se usar o **Live Server**:
+   * Clique com o botão direito no ficheiro `index.html` e escolha **"Open with Live Server"**.
+4. Se usar **Node.js / npm** (via terminal):
+   * Instale um servidor estático global (se não tiver): `npm install -g http-server`
+   * Execute o servidor na raiz do projeto: `http-server`
+   * Abra o browser no endereço indicado (normalmente `http://localhost:8080`).
 
-## Aspetos Multimedia
-- Imagens: SVG para carro, taxi, combustivel e meta em `assets/images/`.
-- Audio: som em `assets/audio/start.mp3`, usado no menu e como loop de fundo durante a corrida.
-- UI/HUD e cenario: elementos gerados no Phaser, incluindo barras, paineis, pickups e efeitos visuais.
+---
 
-## i18n
-- Suporte multilingue implementado em:
-  - `src/data/pt.json`
-  - `src/data/en.json`
-- Selecao rapida de idioma por tecla `L` durante o jogo e `E` no menu.
+## 🎨 Aspetos Multimédia
 
-## Estrutura Principal
-- `src/scenes/BootScene.js` - preload e setup global
-- `src/scenes/MenuScene.js` - menu inicial
-- `src/scenes/BaseRoomScene.js` - logica base de corrida
-- `src/scenes/Room1Scene.js` - nivel 1
-- `src/scenes/Room2Scene.js` - nivel 2
-- `src/scenes/Room3Scene.js` - nivel 3
-- `src/scenes/EndScene.js` - ecran de fim
+Esta secção detalha a gestão, origem e otimização de todos os recursos visuais e sonoros integrados no motor de jogo durante a fase de desenvolvimento.
 
-## Estado para Entrega
-- Projeto executa localmente por HTTP.
-- Branch `main` sincronizada com `origin/main` antes desta ronda de melhorias.
-- Melhorias recentes: escudo, barra de progresso, recorde local, menu clicavel, escala responsiva, bonus de near miss/combo, estatisticas finais e documentacao corrigida.
+### 🖼️ Elementos Gráficos e Otimização
+
+| Asset | Formato | Dimensões Originais | Origem / Criação | Justificação Técnica de Resolução e Tamanho |
+| :--- | :---: | :---: | :---: | :--- |
+| `carro_anim.png` | PNG | 2790 x 1556 px | Edição / Criação Própria | Spritesheet de alta resolução contendo a animação do veículo do jogador. Dividida em frames de 465x518px para garantir a máxima nitidez em ecrãs modernos de alta densidade (Retina/4K). O redimensionamento para a estrada é feito via código (`setScale(0.15)`), permitindo manter a qualidade visual sem pixelização. |
+| `taxi_anim.png` | PNG | 400 x 400 px | OpenGameArt / Editado | Obstáculo dinâmico do jogo. O asset original continha um fundo falso que comprometia a renderização da pista. Foi editado manualmente (recurso ao *remove.bg*) para garantir transparência real alfa. A resolução foi otimizada para equilibrar o peso do repositório e a escala final de colisão na faixa (`setScale(0.22)`). |
+| `gazolina.svg` | SVG | Vetorial | Criação Própria | Item colecionável de combustível. Utiliza o formato vetorial (Scalable Vector Graphics), o que garante que o elemento mantém contornos perfeitamente nítidos em qualquer resolução de ecrã, com um peso de armazenamento praticamente nulo (poucos KB). |
+| `meta.svg` | SVG | Vetorial | Criação Própria | Linha de meta / objetivo. À semelhança do combustível, o formato SVG foi escolhido para permitir que a linha estique e se ajuste perfeitamente à largura total da pista de forma responsiva sem perder definição. |
+
+### 🔊 Elementos Sonoros (Áudio)
+
+Todos os ficheiros de áudio foram convertidos e comprimidos no formato **MP3**. Esta escolha justifica-se pela necessidade de garantir compatibilidade universal entre browsers modernos e tempos de carregamento (*preload*) extremamente reduzidos, evitando que o jogo congele no `BootScene`.
+
+* **`start.mp3`** (Origem: Freesound.org) - Efeito sonoro curto executado ao iniciar o motor do veículo.
+* **`engine_loop.mp3`** (Origem: Freesound.org) - Áudio de rotação do motor em loop contínuo, otimizado para reprodução fluida sem quebras audíveis.
+* **`bgmusic.mp3`** (Origem: OpenGameArt.org) - Banda sonora de fundo em loop para aumentar a imersão do jogador durante a corrida.
+* **`collision.mp3`** (Origem: Freesound.org) - Efeito de impacto reproduzido instantaneamente quando a hitbox do jogador colide com um obstáculo.
+* **`coin.mp3`** / **`phase_up.mp3`** (Origem: Freesound.org) - Feedback sonoro de recompensa ao interagir com itens ou subir de nível.
+* **`level_clear.mp3`** / **`win.mp3`** / **`lose.mp3`** (Origem: Freesound.org) - Áudios de transição de estado de jogo para assinalar o sucesso ou fim da partida.
+
+---
+
+## 📸 Demonstração Gráfica (Multimedia & Gameplay)
+
+### Capturas de Ecrã (Screenshots)
+
+Abaixo encontram-se os registos visuais do jogo nas suas diferentes fases de execução. Os ficheiros físicos encontram-se guardados na diretoria `docs/screenshots/`.
+
+#### Menu Principal
+![Menu Principal](docs/screenshots/menu.png)
+
+#### Corrida em Execução (Gameplay)
+*Demonstração do alinhamento perfeito de Hitboxes através do modo de debug físico ativo.*
+![Gameplay](docs/screenshots/corrida.png)
+
+#### Menu de Pausa
+![Menu de Pausa](docs/screenshots/pausa.png)
+
+#### Écrã Final (Game Over / Vitória)
+![Écrã Final](docs/screenshots/ecra_final.png)
+
+![Ecrã de Derrota](docs/screenshots/derrota.png)
+
+### 📹 Demonstração em Movimento
+![Animação do Gameplay](docs/screenshots/gameplay.gif)
+
+---
+
+## 🌐 Demonstração Online (GitHub Pages)
+O projeto pode ser jogado diretamente no browser sem necessidade de instalações locais através do link:
+👉 **[Inserir link do GitHub Pages aqui, ex: https://utilizador.github.io/repositorio]**
