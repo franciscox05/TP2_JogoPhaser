@@ -37,7 +37,7 @@
   "newBest": "New best!",
   "runStats": "Time: {time}s | Near misses: {nearMisses} | Best combo: x{bestCombo}",
   "medalGold": "Gold",
-  "medalSilver": "Silver",
+  "medalSilver": "Prata",
   "medalBronze": "Bronze",
   "winTitle": "Victory!",
   "winSubtitle": "You completed all tracks.",
@@ -46,5 +46,9 @@
   "loseSubtitleFuel": "You ran out of fuel.",
   "restartHint": "Press R to return to menu",
   "playAgain": "Play Again",
-  "backToMenu": "Back to Menu"
+  "backToMenu": "Back to Menu",
+  "volume": "Volume",
+  "mute": "Mute",
+  "on": "ON",
+  "off": "OFF"
 }
