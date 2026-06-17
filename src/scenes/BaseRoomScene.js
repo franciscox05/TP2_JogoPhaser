@@ -197,6 +197,7 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   createHud() {
+    // --- PAINEL PRINCIPAL DO HUD ---
     const panel = this.add.rectangle(300, 40, 580, 72, 0x000000, 0.68).setDepth(30);
     panel.setStrokeStyle(2, 0x69bfff, 0.9);
 
@@ -217,6 +218,7 @@ export class BaseRoomScene extends Phaser.Scene {
     this.progressBarBg = this.add.rectangle(26, 68, 552, 8, 0x101820, 0.95).setOrigin(0, 0.5).setDepth(31);
     this.progressBarFill = this.add.rectangle(26, 68, 1, 8, 0x69bfff, 1).setOrigin(0, 0.5).setDepth(32);
 
+    // --- PAINEL E BARRAS DE COMBUSTÍVEL ---
     this.fuelBox = this.add.rectangle(825, 34, 220, 30, 0x000000, 0.6).setDepth(30).setStrokeStyle(1, 0xffffff, 0.8);
     this.fuelBarBg = this.add.rectangle(825, 34, 180, 14, 0x1c1c1c, 0.95).setDepth(31);
     this.fuelBarFill = this.add.rectangle(735, 34, 180, 14, 0x2ecc71, 1).setOrigin(0, 0.5).setDepth(32);
@@ -227,6 +229,19 @@ export class BaseRoomScene extends Phaser.Scene {
       strokeThickness: 3
     }).setOrigin(0.5).setDepth(33);
 
+    // --- ÍCONES GRÁFICOS DO HUD ---
+    this.hudIcons = this.add.graphics().setDepth(31);
+    
+    this.hudIcons.fillStyle(0xe74c3c, 1);
+    this.hudIcons.fillCircle(535, 30, 6);
+    this.hudIcons.fillCircle(547, 30, 6);
+    this.hudIcons.fillTriangle(529, 32, 553, 32, 541, 46);
+
+    this.hudIcons.fillStyle(0xf1c40f, 1);
+    this.hudIcons.fillRect(690, 24, 14, 20);
+    this.hudIcons.fillRect(704, 27, 3, 10);
+
+    // --- INDICAÇÕES E OVERLAY DE PAUSA ---
     this.centerHint = this.add.text(480, 510, "", {
       fontSize: "18px",
       color: "#ffffff",
@@ -235,22 +250,70 @@ export class BaseRoomScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(31).setAlpha(0.9);
 
     this.pauseOverlay = this.add.rectangle(480, 270, 960, 540, 0x000000, 0.52).setDepth(60).setVisible(false);
-    this.pausePanel = this.add.rectangle(480, 270, 420, 300, 0x08111b, 0.88).setDepth(61).setVisible(false);
+    
+    this.pausePanel = this.add.rectangle(480, 310, 420, 380, 0x08111b, 0.88).setDepth(61).setVisible(false);
     this.pausePanel.setStrokeStyle(2, 0x69bfff, 0.9);
 
-    this.pauseTitle = this.add.text(480, 180, this.t("paused"), {
+    this.pauseTitle = this.add.text(480, 150, this.t("paused"), {
       fontSize: "46px",
       color: "#ffffff",
       fontStyle: "bold"
     }).setOrigin(0.5).setDepth(62).setVisible(false);
 
-    this.pauseContinueBtn = this.createPauseButton(480, 245, this.t("pauseContinue"), () => this.togglePause());
-    this.pauseRestartBtn = this.createPauseButton(480, 295, this.t("pauseRestart"), () => this.restartRun());
-    this.pauseMenuBtn = this.createPauseButton(480, 345, this.t("pauseMenu"), () => this.goToMenu());
+    // --- BOTÕES DO MENU DE PAUSA ---
+    this.pauseContinueBtn = this.createPauseButton(480, 210, this.t("pauseContinue"), () => this.togglePause());
+    this.pauseRestartBtn = this.createPauseButton(480, 395, this.t("pauseRestart"), () => this.restartRun());
+    this.pauseMenuBtn = this.createPauseButton(480, 445, this.t("pauseMenu"), () => this.goToMenu());
 
     this.pauseButtons = [this.pauseContinueBtn, this.pauseRestartBtn, this.pauseMenuBtn];
     this.pauseButtons.forEach((btn) => btn.container.setVisible(false));
 
+    // --- CONTROLOS DE ÁUDIO NA PAUSA ---
+    this.volumeLabel = this.add.text(330, 270, this.t("volume"), {
+      fontSize: "16px",
+      color: "#ffffff"
+    }).setOrigin(0, 0.5).setDepth(62).setVisible(false);
+
+    this.sliderBg = this.add.rectangle(490, 270, 160, 6, 0x555555).setDepth(62).setVisible(false);
+
+    const savedVolume = parseFloat(localStorage.getItem("gameVolume") || "1.0");
+    this.sound.volume = savedVolume;
+    const initialHandleX = 410 + (savedVolume * 160);
+
+    this.sliderHandle = this.add.circle(initialHandleX, 270, 8, 0x69bfff).setDepth(63).setVisible(false).setInteractive({ useHandCursor: true });
+    this.input.setDraggable(this.sliderHandle);
+
+    const savedMute = localStorage.getItem("gameMute") === "true";
+    this.sound.mute = savedMute;
+    const initialMuteText = `${this.t("mute")}: ${savedMute ? this.t("on") : this.t("off")}`;
+
+    this.pauseMuteBtn = this.add.text(480, 325, initialMuteText, {
+      fontSize: "18px",
+      color: "#ffffff"
+    }).setOrigin(0.5).setDepth(62).setVisible(false).setInteractive({ useHandCursor: true });
+
+    // --- GRUPO DE ELEMENTOS DE ÁUDIO PARA ALTERAÇÃO DE VISIBILIDADE ---
+    this.pauseAudioElements = [this.volumeLabel, this.sliderBg, this.sliderHandle, this.pauseMuteBtn];
+
+    // --- LÓGICA DE INTERAÇÃO DO SLIDER E MUTE ---
+    this.input.on("drag", (pointer, gameObject, dragX) => {
+      if (gameObject === this.sliderHandle) {
+        const constrainedX = Phaser.Math.Clamp(dragX, 410, 570);
+        gameObject.x = constrainedX;
+        const newVolume = (constrainedX - 410) / 160;
+        this.sound.volume = newVolume;
+        localStorage.setItem("gameVolume", newVolume.toString());
+      }
+    });
+
+    this.pauseMuteBtn.on("pointerdown", () => {
+      const newMuteState = !this.sound.mute;
+      this.sound.mute = newMuteState;
+      localStorage.setItem("gameMute", newMuteState.toString());
+      this.pauseMuteBtn.setText(`${this.t("mute")}: ${newMuteState ? this.t("on") : this.t("off")}`);
+    });
+
+    // --- CONTROLOS TÁTEIS ---
     this.createTouchControls();
   }
 
@@ -712,10 +775,12 @@ export class BaseRoomScene extends Phaser.Scene {
     this.isPaused = !this.isPaused;
     this.physics.world.isPaused = this.isPaused;
 
+    // --- VISIBILIDADE DO OVERLAY E PAINEL ---
     this.pauseOverlay.setVisible(this.isPaused);
     this.pausePanel.setVisible(this.isPaused);
     this.pauseTitle.setVisible(this.isPaused);
 
+    // --- VISIBILIDADE DOS BOTÕES ---
     this.pauseContinueBtn.container.setVisible(this.isPaused);
     this.pauseContinueBtn.text.setVisible(this.isPaused);
     this.pauseRestartBtn.container.setVisible(this.isPaused);
@@ -723,6 +788,12 @@ export class BaseRoomScene extends Phaser.Scene {
     this.pauseMenuBtn.container.setVisible(this.isPaused);
     this.pauseMenuBtn.text.setVisible(this.isPaused);
 
+    // --- VISIBILIDADE DOS CONTROLOS DE ÁUDIO ---
+    if (this.pauseAudioElements) {
+      this.pauseAudioElements.forEach((el) => el.setVisible(this.isPaused));
+    }
+
+    // --- ATUALIZAÇÃO DO HUD ---
     if (!this.isPaused) this.updateHud();
   }
 

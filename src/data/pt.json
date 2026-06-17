@@ -46,5 +46,9 @@
   "loseSubtitleFuel": "Ficaste sem combustivel.",
   "restartHint": "Pressiona R para voltar ao menu",
   "playAgain": "Jogar de Novo",
-  "backToMenu": "Voltar ao Menu"
+  "backToMenu": "Voltar ao Menu",
+  "volume": "Volume",
+  "mute": "Mudo",
+  "on": "LIGADO",
+  "off": "DESLIGADO"
 }
