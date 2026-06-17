@@ -27,9 +27,9 @@ export class BaseRoomScene extends Phaser.Scene {
     this.createTrackBackground();
     this.createTrackLimits();
 
-    this.player = this.physics.add.sprite(this.lanes[this.currentLane], 450, "carroSprite").setDepth(10);
+    this.player = this.physics.add.sprite(this.lanes[this.currentLane], 450, "carroSprite").setDepth(10).setScale(0.15);    
     this.player.setCollideWorldBounds(true);
-    this.player.body.setSize(60, 115).setOffset(20, 8);
+    this.player.body.setSize(this.player.width, this.player.height);
 
     this.obstacles = this.physics.add.group();
     this.coins = this.physics.add.group();
@@ -474,17 +474,19 @@ export class BaseRoomScene extends Phaser.Scene {
     if (lane === undefined) return;
 
     const isTruck = Phaser.Math.Between(1, 8) === 1;
-    const obstacle = this.obstacles.create(this.lanes[lane], -70, "taxiSprite").setDepth(8);
+    const obstacle = this.obstacles.create(this.lanes[lane], -70, "taxiSprite");
+    obstacle.setDepth(8);
 
     if (isTruck) {
-      obstacle.setScale(1.35).setTint(0xff8c00);
-      obstacle.body.setSize(72, 110).setOffset(16, 8);
+      obstacle.setScale(0.35).setTint(0xff8c00);
+      obstacle.body.setSize(obstacle.width, obstacle.height, true);
       obstacle.setData("speed", this.getObstacleSpeed() * 0.65);
     } else {
-      obstacle.body.setSize(58, 110).setOffset(22, 10);
+      obstacle.setScale(0.22).clearTint();
+      obstacle.body.setSize(obstacle.width, obstacle.height, true);
       obstacle.setData("speed", this.getObstacleSpeed());
     }
-
+  
     obstacle.setData("lane", lane);
     obstacle.setData("isTruck", isTruck);
   }

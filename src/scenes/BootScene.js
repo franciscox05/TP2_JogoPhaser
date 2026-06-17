@@ -26,7 +26,7 @@ export class BootScene extends Phaser.Scene {
     
     // --- CARREGAMENTO DE GRÁFICOS E SPRITESHEETS ---
     this.load.spritesheet("carroSprite", "./assets/images/carro_anim.png", { frameWidth: 389, frameHeight: 465 });
-    this.load.spritesheet("taxiSprite", "./assets/images/taxi_anim.png", { frameWidth: 800, frameHeight: 800 });
+    this.load.image("taxiSprite", "./assets/images/taxi_anim.png");
     this.load.svg("gasolinaSprite", "./assets/images/gazolina.svg");
     this.load.svg("metaSprite", "./assets/images/meta.svg");
   }
