@@ -24,13 +24,14 @@ export class BaseRoomScene extends Phaser.Scene {
     this.lanes = [300, 480, 660];
     this.currentLane = 1;
     this.lastLaneChangeTime = -9999;
+    this.laneLastObstacleTime = [0, 0, 0];
 
     this.createTrackBackground();
     this.createTrackLimits();
 
     this.player = this.physics.add.sprite(this.lanes[this.currentLane], 450, "carroSprite").setDepth(10).setScale(0.15);    
     this.player.setCollideWorldBounds(true);
-    this.player.body.setSize(this.player.width, this.player.height);
+    this.setBodyBox(this.player, 0.52, 0.74);
 
     if (!this.anims.exists("luzesPlayer")) {
       this.anims.create({
@@ -72,6 +73,7 @@ export class BaseRoomScene extends Phaser.Scene {
 
     this.lastObstacleSpawn = 0;
     this.lastCoinSpawn = 0;
+    this.laneLastObstacleTime = [this.time.now, this.time.now, this.time.now];
     this.lastLifeSpawnTime = 0;
     this.activeLifePickup = null;
     this.lastShieldSpawnTime = 0;
@@ -363,6 +365,12 @@ export class BaseRoomScene extends Phaser.Scene {
     return { container: rect, text };
   }
 
+  setBodyBox(sprite, widthRatio, heightRatio) {
+    const bodyWidth = sprite.width * widthRatio;
+    const bodyHeight = sprite.height * heightRatio;
+    sprite.body.setSize(bodyWidth, bodyHeight, true);
+  }
+
   t(k) {
     const l = this.registry.get("lang") || "pt";
     return (this.registry.get("i18n")[l] || {})[k] ?? k;
@@ -494,6 +502,14 @@ export class BaseRoomScene extends Phaser.Scene {
     return Phaser.Math.Clamp(base + phaseBoost + levelBoost, 0, this.cfg.maxPlayerLanePressureChance ?? 0.82);
   }
 
+  getStaleLanes() {
+    const now = this.time.now;
+    const threshold = this.cfg.maxLaneIdleMs ?? 3200;
+    return this.lanes
+      .map((_x, lane) => lane)
+      .filter((lane) => now - this.laneLastObstacleTime[lane] > threshold);
+  }
+
   createObstacleAtLane(lane, waveSize) {
     const isTruck = waveSize === 1 && Phaser.Math.FloatBetween(0, 1) < (this.cfg.truckChance ?? 0.12);
     const obstacle = this.obstacles.create(this.lanes[lane], -70, "taxiSprite");
@@ -501,16 +517,17 @@ export class BaseRoomScene extends Phaser.Scene {
 
     if (isTruck) {
       obstacle.setScale(0.35).setTint(0xff8c00);
-      obstacle.body.setSize(obstacle.width, obstacle.height, true);
+      this.setBodyBox(obstacle, 0.50, 0.68);
       obstacle.setData("speed", this.getObstacleSpeed() * (this.cfg.truckSpeedFactor ?? 0.68));
     } else {
       obstacle.setScale(0.22).clearTint();
-      obstacle.body.setSize(obstacle.width, obstacle.height, true);
+      this.setBodyBox(obstacle, 0.46, 0.66);
       obstacle.setData("speed", this.getObstacleSpeed());
     }
 
     obstacle.setData("lane", lane);
     obstacle.setData("isTruck", isTruck);
+    this.laneLastObstacleTime[lane] = this.time.now;
   }
 
   spawnObstacle() {
@@ -528,8 +545,14 @@ export class BaseRoomScene extends Phaser.Scene {
 
     if (candidates.length === 0) return;
 
+    const staleLanes = this.getStaleLanes();
+    const staleWaves = candidates.filter((wave) => staleLanes.some((lane) => wave.includes(lane)));
+    if (staleWaves.length > 0) {
+      candidates = staleWaves;
+    }
+
     const pressureWaves = candidates.filter((wave) => wave.includes(this.currentLane));
-    if (pressureWaves.length > 0 && Phaser.Math.FloatBetween(0, 1) < this.getPlayerLanePressureChance()) {
+    if (staleWaves.length === 0 && pressureWaves.length > 0 && Phaser.Math.FloatBetween(0, 1) < this.getPlayerLanePressureChance()) {
       candidates = pressureWaves;
     }
 
@@ -544,7 +567,7 @@ export class BaseRoomScene extends Phaser.Scene {
     if (lane === undefined) return;
 
     const coin = this.coins.create(this.lanes[lane], -34, "gasolinaSprite").setDepth(8);
-    coin.body.setSize(24, 24).setOffset(4, 4);
+    this.setBodyBox(coin, 0.70, 0.78);
     coin.setData("speed", Math.max(180, this.getObstacleSpeed() - 60));
     coin.setData("lane", lane);
   }
@@ -690,7 +713,7 @@ export class BaseRoomScene extends Phaser.Scene {
     if (lane === undefined) return;
 
     const life = this.lifePickups.create(this.lanes[lane], -36, "lifeSprite").setDepth(8);
-    life.body.setSize(24, 24).setOffset(2, 2);
+    this.setBodyBox(life, 0.82, 0.82);
     life.setData("speed", Math.max(170, this.getObstacleSpeed() - 70));
     life.setData("spawnTime", now);
 
@@ -713,7 +736,7 @@ export class BaseRoomScene extends Phaser.Scene {
     if (lane === undefined) return;
 
     const shield = this.shieldPickups.create(this.lanes[lane], -40, "shieldSprite").setDepth(8);
-    shield.body.setSize(26, 30).setOffset(7, 5);
+    this.setBodyBox(shield, 0.70, 0.78);
     shield.setData("speed", Math.max(175, this.getObstacleSpeed() - 80));
     shield.setData("spawnTime", now);
 
