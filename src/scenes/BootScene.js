@@ -8,12 +8,12 @@ export class BootScene extends Phaser.Scene {
   }
 
   preload() {
-    // --- GESTÃO DE ERROS DE CARREGAMENTO ---
+    // Se algum asset opcional falhar, mostramos aviso mas o jogo continua.
     this.load.on("loaderror", (file) => {
       console.warn(`[BootScene] Asset nao encontrado, ignorado: ${file.key}`);
     });
 
-    // --- CARREGAMENTO DE ÁUDIO ---
+    // Sons usados no menu, corrida, colisao, vitoria e derrota.
     this.load.audio("engineStart", "./assets/audio/start.mp3");
     this.load.audio("engineLoop", "./assets/audio/engine_loop.mp3");
     this.load.audio("bgMusic",     "./assets/audio/bgmusic.mp3");
@@ -24,7 +24,7 @@ export class BootScene extends Phaser.Scene {
     this.load.audio("win",         "./assets/audio/win.mp3");
     this.load.audio("lose",        "./assets/audio/lose.mp3");
     
-    // --- CARREGAMENTO DE GRÁFICOS E SPRITESHEETS ---
+    // Sprites principais. O carro e spritesheet animado; os outros sao imagens.
     this.load.spritesheet("carroSprite", "./assets/images/carro_anim.png", { frameWidth: 465, frameHeight: 518 });
     this.load.image("taxiSprite", "./assets/images/taxi_anim.png");
     this.load.svg("gasolinaSprite", "./assets/images/gazolina.svg");
@@ -32,7 +32,8 @@ export class BootScene extends Phaser.Scene {
   }
 
   create() {
-    // --- INICIALIZAÇÃO DO ESTADO GLOBAL ---
+    // Registry e a memoria global do Phaser entre cenas.
+    // Guardamos idioma, dicionarios e estado inicial da tentativa.
     this.registry.set("lang", "pt");
     this.registry.set("i18n", { pt, en, es });
     this.registry.set("runState", {

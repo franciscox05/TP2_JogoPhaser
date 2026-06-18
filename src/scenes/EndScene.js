@@ -4,6 +4,8 @@ export class EndScene extends Phaser.Scene {
   }
 
   init(data) {
+    // Dados recebidos da corrida. Usamos valores por defeito para evitar erros
+    // caso a cena seja aberta diretamente durante testes.
     this.victory    = Boolean(data?.victory);
     this.loseReason = data?.loseReason ?? "lives";
     this.score      = Number(data?.score ?? 0);
@@ -15,6 +17,7 @@ export class EndScene extends Phaser.Scene {
   }
 
   create() {
+    // O ecra final adapta texto, cor, som e subtitulo a vitoria/derrota.
     this._transitioning = false;
     this.drawBackground();
 
@@ -67,7 +70,7 @@ export class EndScene extends Phaser.Scene {
       fontStyle: bestScore.isNew ? "bold" : "normal"
     }).setOrigin(0.5);
 
-    // Botao "Jogar de Novo" — vai direto para Room1Scene
+    // Botao "Jogar de Novo": vai direto para Room1Scene.
     const playAgainBtn = this.add.text(355, 400, dict.playAgain, {
       fontSize: "21px",
       color: "#ffffff",
@@ -79,7 +82,7 @@ export class EndScene extends Phaser.Scene {
     playAgainBtn.on("pointerout",  () => playAgainBtn.setStyle({ backgroundColor: "#1a5c1a" }));
     playAgainBtn.on("pointerdown", () => this.goTo("Room1Scene"));
 
-    // Botao "Voltar ao Menu"
+    // Botao "Voltar ao Menu".
     const menuBtn = this.add.text(605, 400, dict.backToMenu, {
       fontSize: "21px",
       color: "#ffffff",
@@ -98,7 +101,7 @@ export class EndScene extends Phaser.Scene {
 
     this.restartKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R);
 
-    // Som de vitoria ou derrota (se o Afonso ja entregou os ficheiros)
+    // Som de vitoria ou derrota, carregado na BootScene.
     const soundKey = this.victory ? "win" : "lose";
     if (this.cache.audio.has(soundKey)) {
       this.sound.play(soundKey, { volume: 0.75 });
@@ -108,6 +111,7 @@ export class EndScene extends Phaser.Scene {
   }
 
   goTo(scene) {
+    // Qualquer saida do ecra final reinicia a tentativa.
     if (this._transitioning) return;
     this._transitioning = true;
     this.cameras.main.fadeOut(300, 0, 0, 0);
@@ -122,12 +126,14 @@ export class EndScene extends Phaser.Scene {
   }
 
   getMedalByScore(score) {
+    // Medalha meramente visual para resumir desempenho.
     if (score >= 3600) return { key: "medalGold",   color: "#ffd54a" };
     if (score >= 2500) return { key: "medalSilver", color: "#dfe7f2" };
     return                    { key: "medalBronze", color: "#d68a4d" };
   }
 
   updateBestScore(score) {
+    // Guarda o melhor resultado localmente no browser.
     const storageKey = "roadEscapeBestScore";
     const previous = Number(localStorage.getItem(storageKey) ?? 0);
     const value = Math.max(previous, score);
@@ -136,10 +142,12 @@ export class EndScene extends Phaser.Scene {
   }
 
   format(template, values) {
+    // Formata textos traduzidos com placeholders.
     return template.replace(/\{(\w+)\}/g, (_match, key) => values[key] ?? "");
   }
 
   drawBackground() {
+    // Fundo em pedra para diferenciar o final das salas de estrada.
     const g = this.add.graphics();
     g.fillGradientStyle(0x140d09, 0x140d09, 0x341f14, 0x341f14, 1);
     g.fillRect(0, 0, 960, 540);
@@ -154,6 +162,7 @@ export class EndScene extends Phaser.Scene {
   }
 
   update() {
+    // Atalho de teclado para voltar ao menu depois do resultado.
     if (this._transitioning) return;
     if (Phaser.Input.Keyboard.JustDown(this.restartKey)) {
       this.goTo("MenuScene");

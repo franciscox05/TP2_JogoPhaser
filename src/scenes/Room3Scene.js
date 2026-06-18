@@ -2,14 +2,21 @@ import { BaseRoomScene } from "./BaseRoomScene.js";
 
 export class Room3Scene extends BaseRoomScene {
   constructor() {
+    // Nivel 3: final. E o mais rapido, com spawns mais curtos,
+    // maior pressao sobre o jogador e recompensas mais arriscadas.
     super("Room3Scene", {
+      // Fluxo da campanha.
       roomNumber: 3,
       nextScene: "EndScene",
       final: true,
+
+      // Pontuacao necessaria e pontos onde a fase de dificuldade sobe.
       previousTargetScore: 2050,
       targetScore: 3700,
       phase2Score: 2700,
       phase3Score: 3300,
+
+      // Ritmo base do nivel: velocidade dos carros e frequencia de spawn.
       baseSpeed: 365,
       phaseSpeedBoost: 95,
       baseSpawnDelay: 760,
@@ -17,6 +24,8 @@ export class Room3Scene extends BaseRoomScene {
       levelSpawnReduction: 30,
       minSpawnDelay: 500,
       obstacleMinGap: 370,
+
+      // Dificuldade dos obstaculos: ondas duplas, pressao na pista atual e camioes.
       doubleObstacleChance: 0.32,
       doubleObstaclePhaseBoost: 0.11,
       doubleObstacleLevelBoost: 0.05,
@@ -27,6 +36,8 @@ export class Room3Scene extends BaseRoomScene {
       maxPlayerLanePressureChance: 0.88,
       maxLaneIdleMs: 1600,
       truckChance: 0.16,
+
+      // Recompensas e risco: moedas, near miss, combustivel, vida e escudo.
       coinSpawnDelay: 1100,
       coinScore: 46,
       nearMissScore: 9,

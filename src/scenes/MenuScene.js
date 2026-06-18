@@ -4,10 +4,12 @@ export class MenuScene extends Phaser.Scene {
   }
 
   create() {
+    // Evita duplos cliques/duplos Enter durante o fade para o jogo.
     this._transitioning = false;
     this.enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
     this.toggleLangKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
 
+    // Menu simples sobre uma estrada para manter identidade visual do jogo.
     this.drawBackground();
 
     const panel = this.add.rectangle(480, 280, 620, 350, 0x05070b, 0.76);
@@ -62,6 +64,7 @@ export class MenuScene extends Phaser.Scene {
   }
 
   drawBackground() {
+    // Fundo desenhado por codigo: estrada, faixas e silhueta do carro.
     const g = this.add.graphics();
     g.fillGradientStyle(0x0a111c, 0x0a111c, 0x15263d, 0x15263d, 1);
     g.fillRect(0, 0, 960, 540);
@@ -85,6 +88,7 @@ export class MenuScene extends Phaser.Scene {
   }
 
   refreshTexts() {
+    // Todos os textos do menu dependem do idioma atual.
     const lang = this.registry.get("lang") || "pt";
     const dict = this.registry.get("i18n")[lang];
 
@@ -96,6 +100,7 @@ export class MenuScene extends Phaser.Scene {
   }
 
   update() {
+    // Tecla E troca o idioma; Enter comeca o jogo.
     if (this._transitioning) return;
 
     if (Phaser.Input.Keyboard.JustDown(this.toggleLangKey)) {
@@ -111,6 +116,7 @@ export class MenuScene extends Phaser.Scene {
   }
 
   startGame() {
+    // Comeca sempre uma tentativa limpa a partir do nivel 1.
     if (this._transitioning) return;
     this._transitioning = true;
     this.registry.set("runState", {

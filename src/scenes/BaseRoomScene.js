@@ -1,12 +1,17 @@
 export class BaseRoomScene extends Phaser.Scene {
+  // Cena base reutilizada pelos tres niveis.
+  // As cenas Room1/Room2/Room3 mudam apenas a configuracao de dificuldade.
   constructor(key, cfg) {
     super(key);
     this.cfg = cfg;
   }
 
   create() {
+    // Limites fisicos da zona jogavel da estrada.
     this.physics.world.setBounds(20, 0, 920, 540);
 
+    // Estado persistente da corrida. Ao passar de sala mantemos pontuacao,
+    // vidas, combustivel, escudo e estatisticas de combo.
     const defaultRunState = {
       lives: 3,
       score: 0,
@@ -21,6 +26,7 @@ export class BaseRoomScene extends Phaser.Scene {
     };
     this.state = { ...defaultRunState, ...(this.registry.get("runState") || {}) };
 
+    // Tres pistas fixas: o jogador fica sempre centrado num destes X.
     this.lanes = [300, 480, 660];
     this.currentLane = 1;
     this.lastLaneChangeTime = -9999;
@@ -30,8 +36,11 @@ export class BaseRoomScene extends Phaser.Scene {
     this.createTrackLimits();
 
     this.player = this.physics.add.sprite(this.lanes[this.currentLane], 450, "carroSprite").setDepth(10).setScale(0.15);
+    // O spritesheet tem espaco transparente a direita; este origin centra
+    // a parte visivel do carro no meio da pista.
     this.player.setOrigin(0.324, 0.5);
     this.player.setCollideWorldBounds(true);
+    // Hitbox um pouco menor que o desenho para a colisao parecer justa.
     this.setBodyBox(this.player, 0.58, 0.82);
 
     if (!this.anims.exists("luzesPlayer")) {
@@ -49,6 +58,7 @@ export class BaseRoomScene extends Phaser.Scene {
     this.lifePickups = this.physics.add.group();
     this.shieldPickups = this.physics.add.group();
 
+    // Controlos principais: setas/A-D, L para idioma e P para pausa.
     this.leftKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT);
     this.rightKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT);
     this.aKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
@@ -62,6 +72,7 @@ export class BaseRoomScene extends Phaser.Scene {
     this.isStarting = true;
     this._transitioning = false;
 
+    // Cada grupo tem uma regra propria de colisao/recolha.
     this.physics.add.collider(this.player, this.trackWalls);
     this.physics.add.overlap(this.player, this.obstacles, this.onHitObstacle, null, this);
     this.physics.add.overlap(this.player, this.coins, this.onCollectCoin, null, this);
@@ -72,6 +83,8 @@ export class BaseRoomScene extends Phaser.Scene {
     this.updateHud();
     this.showLevelIntro();
 
+    // Temporizadores de spawn. laneLastObstacleTime evita pistas vazias
+    // durante tempo excessivo.
     this.lastObstacleSpawn = 0;
     this.lastCoinSpawn = 0;
     this.laneLastObstacleTime = [this.time.now, this.time.now, this.time.now];
@@ -82,6 +95,7 @@ export class BaseRoomScene extends Phaser.Scene {
 
     this.startBackgroundMusic();
 
+    // Relogio principal: pontuacao passiva, combustivel, fases e fim da sala.
     this.gameTimer = this.time.addEvent({
       delay: 100,
       loop: true,
@@ -118,6 +132,7 @@ export class BaseRoomScene extends Phaser.Scene {
   createTrackBackground() {
     this.createGeneratedTextures();
 
+    // Fundo desenhado por codigo: estrada, bermas e marcadores de pista.
     const g = this.add.graphics();
     g.fillStyle(0x2f2f2f, 1);
     g.fillRect(0, 0, 960, 540);
@@ -129,12 +144,12 @@ export class BaseRoomScene extends Phaser.Scene {
     g.fillRect(220, 0, 20, 540);
     g.fillRect(720, 0, 20, 540);
 
-    // Bordas amarelas da estrada para destacar limites
+    // Bordas amarelas da estrada para destacar limites.
     g.fillStyle(0xf1c40f, 0.95);
     g.fillRect(238, 0, 4, 540);
     g.fillRect(718, 0, 4, 540);
 
-    // Divisorias principais das 3 pistas com contraste melhor
+    // Divisorias principais das tres pistas.
     g.fillStyle(0xffffff, 0.42);
     g.fillRect(390, 0, 10, 540);
     g.fillRect(558, 0, 10, 540);
@@ -148,7 +163,7 @@ export class BaseRoomScene extends Phaser.Scene {
       this.roadLines.add(l2);
     }
 
-    // Cenário lateral em movimento (postes/placas)
+    // Cenario lateral em movimento: postes e placas reforcam a sensacao de velocidade.
     this.sideScenery = this.add.group();
     for (let i = 0; i < 8; i += 1) {
       const y = i * 80 + Phaser.Math.Between(-20, 20);
@@ -167,6 +182,7 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   createGeneratedTextures() {
+    // Texturas pequenas geradas em runtime para evitar ficheiros extra.
     if (!this.textures.exists("particleSprite")) {
       const p = this.add.graphics();
       p.fillStyle(0xffffff, 1);
@@ -200,6 +216,7 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   createTrackLimits() {
+    // Paredes invisiveis nas laterais impedem o carro de sair da estrada.
     this.trackWalls = this.physics.add.staticGroup();
 
     for (let y = 0; y <= 560; y += 40) {
@@ -211,7 +228,7 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   createHud() {
-    // --- PAINEL PRINCIPAL DO HUD ---
+    // --- Painel principal do HUD ---
     const panel = this.add.rectangle(340, 40, 660, 72, 0x000000, 0.68).setDepth(30);
     panel.setStrokeStyle(2, 0x69bfff, 0.9);
 
@@ -232,7 +249,7 @@ export class BaseRoomScene extends Phaser.Scene {
     this.progressBarBg = this.add.rectangle(26, 68, 620, 8, 0x101820, 0.95).setOrigin(0, 0.5).setDepth(31);
     this.progressBarFill = this.add.rectangle(26, 68, 1, 8, 0x69bfff, 1).setOrigin(0, 0.5).setDepth(32);
 
-    // --- PAINEL E BARRAS DE COMBUSTÍVEL ---
+    // --- Painel e barra de combustivel ---
     this.fuelBox = this.add.rectangle(825, 34, 220, 30, 0x000000, 0.6).setDepth(30).setStrokeStyle(1, 0xffffff, 0.8);
     this.fuelBarBg = this.add.rectangle(825, 34, 180, 14, 0x1c1c1c, 0.95).setDepth(31);
     this.fuelBarFill = this.add.rectangle(735, 34, 180, 14, 0x2ecc71, 1).setOrigin(0, 0.5).setDepth(32);
@@ -243,7 +260,7 @@ export class BaseRoomScene extends Phaser.Scene {
       strokeThickness: 3
     }).setOrigin(0.5).setDepth(33);
 
-    // --- ÍCONES GRÁFICOS DO HUD ---
+    // --- Icones graficos do HUD ---
     this.hudIcons = this.add.graphics().setDepth(31);
     
     this.hudIcons.fillStyle(0xe74c3c, 1);
@@ -251,7 +268,7 @@ export class BaseRoomScene extends Phaser.Scene {
     this.hudIcons.fillCircle(38, 27, 5);
     this.hudIcons.fillTriangle(23, 29, 43, 29, 33, 42);
 
-    // --- INDICAÇÕES E OVERLAY DE PAUSA ---
+    // --- Indicacoes e overlay de pausa ---
     this.centerHint = this.add.text(480, 510, "", {
       fontSize: "18px",
       color: "#ffffff",
@@ -270,7 +287,7 @@ export class BaseRoomScene extends Phaser.Scene {
       fontStyle: "bold"
     }).setOrigin(0.5).setDepth(62).setVisible(false);
 
-    // --- BOTÕES DO MENU DE PAUSA ---
+    // --- Botoes do menu de pausa ---
     this.pauseContinueBtn = this.createPauseButton(480, 210, this.t("pauseContinue"), () => this.togglePause());
     this.pauseRestartBtn = this.createPauseButton(480, 395, this.t("pauseRestart"), () => this.restartRun());
     this.pauseMenuBtn = this.createPauseButton(480, 445, this.t("pauseMenu"), () => this.goToMenu());
@@ -278,7 +295,7 @@ export class BaseRoomScene extends Phaser.Scene {
     this.pauseButtons = [this.pauseContinueBtn, this.pauseRestartBtn, this.pauseMenuBtn];
     this.pauseButtons.forEach((btn) => btn.container.setVisible(false));
 
-    // --- CONTROLOS DE ÁUDIO NA PAUSA ---
+    // --- Controlos de audio na pausa ---
     this.volumeLabel = this.add.text(330, 270, this.t("volume"), {
       fontSize: "16px",
       color: "#ffffff"
@@ -302,10 +319,10 @@ export class BaseRoomScene extends Phaser.Scene {
       color: "#ffffff"
     }).setOrigin(0.5).setDepth(62).setVisible(false).setInteractive({ useHandCursor: true });
 
-    // --- GRUPO DE ELEMENTOS DE ÁUDIO PARA ALTERAÇÃO DE VISIBILIDADE ---
+    // --- Grupo de elementos de audio para mostrar/esconder em conjunto ---
     this.pauseAudioElements = [this.volumeLabel, this.sliderBg, this.sliderHandle, this.pauseMuteBtn];
 
-    // --- LÓGICA DE INTERAÇÃO DO SLIDER E MUTE ---
+    // --- Logica de interacao do slider e mute ---
     this.input.on("drag", (pointer, gameObject, dragX) => {
       if (gameObject === this.sliderHandle) {
         const constrainedX = Phaser.Math.Clamp(dragX, 410, 570);
@@ -323,11 +340,12 @@ export class BaseRoomScene extends Phaser.Scene {
       this.pauseMuteBtn.setText(`${this.t("mute")}: ${newMuteState ? this.t("on") : this.t("off")}`);
     });
 
-    // --- CONTROLOS TÁTEIS ---
+    // --- Controlos tateis ---
     this.createTouchControls();
   }
 
   createTouchControls() {
+    // Botoes laterais para mobile/tablet; usam a mesma funcao do teclado.
     this.touchLeft = this.createTouchButton(86, 462, "<", () => this.tryMoveLane(-1));
     this.touchRight = this.createTouchButton(874, 462, ">", () => this.tryMoveLane(1));
   }
@@ -367,17 +385,21 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   setBodyBox(sprite, widthRatio, heightRatio) {
+    // Phaser calcula a hitbox com base no frame original.
+    // Racios deixam a hitbox proporcional ao sprite depois da escala visual.
     const bodyWidth = sprite.width * widthRatio;
     const bodyHeight = sprite.height * heightRatio;
     sprite.body.setSize(bodyWidth, bodyHeight, true);
   }
 
   t(k) {
+    // Traducao simples com base no idioma guardado no registry global.
     const l = this.registry.get("lang") || "pt";
     return (this.registry.get("i18n")[l] || {})[k] ?? k;
   }
 
   format(k, values) {
+    // Substitui placeholders como {room} ou {score}.
     return this.t(k).replace(/\{(\w+)\}/g, (_match, key) => values[key] ?? "");
   }
 
@@ -402,6 +424,7 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   showLevelIntro() {
+    // Pequena pausa inicial para mostrar objetivo antes de comecar a gerar perigos.
     this.centerHint.setText(this.format("roomIntro", { room: this.cfg.roomNumber, score: this.cfg.targetScore }));
     this.time.delayedCall(1300, () => {
       this.isStarting = false;
@@ -410,6 +433,7 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   updateHud() {
+    // Atualiza textos, progresso da sala e cor da barra de combustivel.
     const fuelRounded = Math.round(this.state.fuel);
     this.hudText.setText(
       `${this.t("hudLives")}: ${this.state.lives}   ${this.t("hudShield")}: ${this.state.shield}   ${this.t("hudCombo")}: x${this.state.combo}   ${this.t("hudScore")}: ${this.state.score}   ${this.t("hudRoom")}: ${this.cfg.roomNumber}`
@@ -431,6 +455,7 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   updatePhaseByScore() {
+    // A sala fica mais dificil quando a pontuacao passa os limites de fase.
     let nextPhase = 1;
     if (this.state.score >= this.cfg.phase2Score) nextPhase = 2;
     if (this.state.score >= this.cfg.phase3Score) nextPhase = 3;
@@ -447,27 +472,33 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   getObstacleSpeed() {
+    // Velocidade cresce por fase.
     return this.cfg.baseSpeed + (this.state.phase - 1) * this.cfg.phaseSpeedBoost;
   }
 
   getFuelDrainPerTick() {
+    // Consumo cresce por fase e por sala para aumentar a pressao no fim.
     const byPhase = 1 + (this.state.phase - 1) * 0.22;
     const byLevel = 1 + (this.cfg.roomNumber - 1) * 0.18;
     return this.cfg.fuelDrainPerTick * byPhase * byLevel;
   }
 
   getObstacleSpawnDelay() {
+    // Delay menor significa mais obstaculos; minSpawnDelay evita exageros injustos.
     const phaseReduction = this.cfg.phaseSpawnReduction ?? 90;
     const levelReduction = (this.cfg.roomNumber - 1) * (this.cfg.levelSpawnReduction ?? 25);
     return Math.max(this.cfg.minSpawnDelay ?? 620, this.cfg.baseSpawnDelay - (this.state.phase - 1) * phaseReduction - levelReduction);
   }
 
   hasLaneSpace(group, laneIndex, minGap) {
+    // Evita criar dois objetos demasiado juntos na mesma pista.
     const laneX = this.lanes[laneIndex];
     return !group.getChildren().some((obj) => obj.active && Math.abs(obj.x - laneX) < 5 && obj.y < minGap);
   }
 
   getBlockedLanesAhead(extraLanes = []) {
+    // Calcula pistas bloqueadas entre o topo e o jogador.
+    // extraLanes permite testar uma onda nova antes de a criar.
     const laneList = Array.isArray(extraLanes)
       ? extraLanes
       : (extraLanes === null ? [] : [extraLanes]);
@@ -485,11 +516,15 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   canSpawnObstacleWave(lanes) {
+    // Regra anti-circuitos impossiveis:
+    // a onda so nasce se, no total, nao bloquear as tres pistas.
     if (!lanes.every((lane) => this.hasLaneSpace(this.obstacles, lane, this.cfg.obstacleMinGap ?? 280))) return false;
     return this.getBlockedLanesAhead(lanes).size <= 2;
   }
 
   getDoubleObstacleChance() {
+    // Probabilidade de duas pistas bloqueadas ao mesmo tempo.
+    // Cresce com a fase e com a sala, ate ao limite configurado.
     const base = this.cfg.doubleObstacleChance ?? 0.12;
     const phaseBoost = (this.state.phase - 1) * (this.cfg.doubleObstaclePhaseBoost ?? 0.08);
     const levelBoost = (this.cfg.roomNumber - 1) * (this.cfg.doubleObstacleLevelBoost ?? 0.04);
@@ -497,6 +532,8 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   getPlayerLanePressureChance() {
+    // Probabilidade de pressionar a pista atual do jogador.
+    // A validacao anti-impossivel continua a ser aplicada antes do spawn.
     const base = this.cfg.playerLanePressureChance ?? 0.45;
     const phaseBoost = (this.state.phase - 1) * (this.cfg.playerLanePressurePhaseBoost ?? 0.08);
     const levelBoost = (this.cfg.roomNumber - 1) * (this.cfg.playerLanePressureLevelBoost ?? 0.05);
@@ -504,6 +541,8 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   getStaleLanes() {
+    // Pistas sem obstaculos durante tempo demais ganham prioridade.
+    // Isto evita que uma linha fique vazia durante muitos segundos.
     const now = this.time.now;
     const threshold = this.cfg.maxLaneIdleMs ?? 3200;
     return this.lanes
@@ -512,11 +551,14 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   getWaveLaneAge(wave) {
+    // Idade da pista mais antiga dentro de uma onda candidata.
     const now = this.time.now;
     return Math.max(...wave.map((lane) => now - this.laneLastObstacleTime[lane]));
   }
 
   createObstacleAtLane(lane, waveSize) {
+    // Camioes so aparecem em ondas simples: sao mais lentos/maiores,
+    // por isso nao os juntamos com bloqueios duplos.
     const isTruck = waveSize === 1 && Phaser.Math.FloatBetween(0, 1) < (this.cfg.truckChance ?? 0.12);
     const obstacle = this.obstacles.create(this.lanes[lane], -70, "taxiSprite");
     obstacle.setDepth(8);
@@ -537,6 +579,11 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   spawnObstacle() {
+    // Pipeline de spawn:
+    // 1. escolhe onda simples ou dupla conforme a dificuldade;
+    // 2. remove ondas sem espaco ou que fechariam as tres pistas;
+    // 3. prioriza pistas ha mais tempo sem carros;
+    // 4. aplica alguma pressao sobre a pista atual do jogador.
     const allWaves = [
       [0], [1], [2],
       [0, 1], [0, 2], [1, 2]
@@ -569,6 +616,7 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   spawnCoin() {
+    // Gasolina/pontos so aparecem em pistas com espaco suficiente.
     const order = Phaser.Utils.Array.Shuffle([0, 1, 2]);
     const lane = order.find((idx) => this.hasLaneSpace(this.coins, idx, 170) && this.hasLaneSpace(this.obstacles, idx, 170));
     if (lane === undefined) return;
@@ -580,6 +628,7 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   onHitObstacle(_player, obstacle) {
+    // Escudo absorve a batida; sem escudo perde vida, combo e combustivel.
     if (this.hitCooldown || this.levelFinished) return;
 
     this.hitCooldown = true;
@@ -625,6 +674,7 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   onCollectCoin(_player, coin) {
+    // A moeda de gasolina recupera combustivel e acrescenta pontuacao.
     const cx = coin.x, cy = coin.y;
     coin.destroy();
     this.state.score += this.cfg.coinScore;
@@ -640,6 +690,7 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   onCollectLife(_player, life) {
+    // Vida extra so aparece quando o jogador tem uma vida.
     const lx = life.x, ly = life.y;
     life.destroy();
     this.activeLifePickup = null;
@@ -654,6 +705,7 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   onCollectShield(_player, shield) {
+    // Escudo limitado a uma carga para ajudar sem tornar o jogo trivial.
     const sx = shield.x, sy = shield.y;
     shield.destroy();
     this.activeShieldPickup = null;
@@ -670,6 +722,8 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   awardNearMiss(obstacle) {
+    // Bonus por "rasar" um obstaculo: exige troca de pista recente
+    // e passagem por uma pista adjacente.
     const obstacleLane = obstacle.getData("lane");
     if (Math.abs(obstacleLane - this.currentLane) !== 1) return;
     if (this.time.now - this.lastLaneChangeTime > (this.cfg.nearMissWindowMs ?? 850)) return;
@@ -693,6 +747,7 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   showFloatingScore(label) {
+    // Texto temporario para feedback imediato de combos e bonus.
     const text = this.add.text(this.player.x, this.player.y - 92, label, {
       fontSize: "18px",
       color: "#f9e86d",
@@ -711,6 +766,7 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   trySpawnLifePickup(now) {
+    // Ajuda de recuperacao: so aparece quando o jogador esta com uma vida.
     if (this.state.lives !== 1) return;
     if (this.activeLifePickup && this.activeLifePickup.active) return;
     if (now - this.lastLifeSpawnTime < this.cfg.lifeRespawnDelay) return;
@@ -733,6 +789,7 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   trySpawnShieldPickup(now) {
+    // Escudo aparece quando ainda nao existe escudo e a tentativa esta apertada.
     if (this.state.shield > 0) return;
     if (this.activeShieldPickup && this.activeShieldPickup.active) return;
     if (now - this.lastShieldSpawnTime < this.cfg.shieldRespawnDelay) return;
@@ -756,6 +813,7 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   finishLevel() {
+    // Ao concluir a sala, limpamos objetos ativos e guardamos o estado para a proxima.
     this.levelFinished = true;
     this._transitioning = true;
     this.obstacles.clear(true, true);
@@ -790,6 +848,7 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   endRun(victory, loseReason = "lives") {
+    // Transicao unica para o ecra final. _transitioning evita abrir duas cenas.
     if (this._transitioning) return;
     this._transitioning = true;
     this.levelFinished = true;
@@ -812,6 +871,7 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   restartRun() {
+    // Recomeca do primeiro nivel a partir do menu de pausa.
     if (this._transitioning) return;
     this._transitioning = true;
     if (this.engineAudio) this.engineAudio.stop();
@@ -824,6 +884,7 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   goToMenu() {
+    // Volta ao menu e limpa o progresso da tentativa atual.
     if (this._transitioning) return;
     this._transitioning = true;
     if (this.engineAudio) this.engineAudio.stop();
@@ -836,6 +897,7 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   tryMoveLane(dir) {
+    // Movimento por pistas: nunca deixa o carro entre duas linhas.
     if (this.levelFinished || this.isPaused || this.isStarting) return;
     const nextLane = Phaser.Math.Clamp(this.currentLane + dir, 0, 2);
     if (nextLane === this.currentLane) return;
@@ -852,16 +914,17 @@ export class BaseRoomScene extends Phaser.Scene {
   }
 
   togglePause() {
+    // Pausa a fisica e mostra a interface de pausa.
     if (this.levelFinished || this._transitioning) return;
     this.isPaused = !this.isPaused;
     this.physics.world.isPaused = this.isPaused;
 
-    // --- VISIBILIDADE DO OVERLAY E PAINEL ---
+    // --- Visibilidade do overlay e painel ---
     this.pauseOverlay.setVisible(this.isPaused);
     this.pausePanel.setVisible(this.isPaused);
     this.pauseTitle.setVisible(this.isPaused);
 
-    // --- VISIBILIDADE DOS BOTÕES ---
+    // --- Visibilidade dos botoes ---
     this.pauseContinueBtn.container.setVisible(this.isPaused);
     this.pauseContinueBtn.text.setVisible(this.isPaused);
     this.pauseRestartBtn.container.setVisible(this.isPaused);
@@ -869,16 +932,17 @@ export class BaseRoomScene extends Phaser.Scene {
     this.pauseMenuBtn.container.setVisible(this.isPaused);
     this.pauseMenuBtn.text.setVisible(this.isPaused);
 
-    // --- VISIBILIDADE DOS CONTROLOS DE ÁUDIO ---
+    // --- Visibilidade dos controlos de audio ---
     if (this.pauseAudioElements) {
       this.pauseAudioElements.forEach((el) => el.setVisible(this.isPaused));
     }
 
-    // --- ATUALIZAÇÃO DO HUD ---
+    // --- Atualizacao do HUD ---
     if (!this.isPaused) this.updateHud();
   }
 
   update() {
+    // Loop por frame: input, pausa, spawns e movimento dos objetos.
     if (this._transitioning) return;
 
     if (Phaser.Input.Keyboard.JustDown(this.langKey)) {
@@ -895,7 +959,7 @@ export class BaseRoomScene extends Phaser.Scene {
     if (Phaser.Input.Keyboard.JustDown(this.pauseKey)) {
       this.togglePause();
       
-      // GESTÃO DE ÁUDIO NA PAUSA: Trava ou retoma o motor conforme o estado do jogo
+      // Audio na pausa: trava ou retoma o motor conforme o estado do jogo.
       if (this.engineAudio) {
         if (this.isPaused) this.engineAudio.pause();
         else this.engineAudio.resume();
@@ -911,7 +975,7 @@ export class BaseRoomScene extends Phaser.Scene {
     if (!this.levelFinished) {
       const speed = this.getObstacleSpeed();
 
-      // --- DINÂMICA DO SOM DO MOTOR ---
+      // --- Dinamica do som do motor ---
       if (this.engineAudio) {
         if (this.engineAudio.isPaused) this.engineAudio.resume();
         
@@ -920,8 +984,6 @@ export class BaseRoomScene extends Phaser.Scene {
         
         this.engineAudio.setRate(targetRate);
       }
-      // ---------------------------------
-
       this.roadLines.getChildren().forEach((line) => {
         line.y += speed * 0.18;
         if (line.y > 580) line.y = -40;

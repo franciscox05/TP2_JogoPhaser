@@ -5,6 +5,7 @@ import { Room2Scene } from "./scenes/Room2Scene.js";
 import { Room3Scene } from "./scenes/Room3Scene.js";
 import { EndScene } from "./scenes/EndScene.js";
 
+// Configuracao central do Phaser: tamanho do canvas, escala, fisica e ordem das cenas.
 const config = {
   type: Phaser.AUTO,
   width: 960,
@@ -21,6 +22,7 @@ const config = {
       debug: false
     }
   },
+  // A ordem mostra o fluxo completo: carregar assets, menu, tres salas e resultado.
   scene: [BootScene, MenuScene, Room1Scene, Room2Scene, Room3Scene, EndScene]
 };
 
