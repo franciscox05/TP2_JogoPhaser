@@ -12,49 +12,57 @@ export class MenuScene extends Phaser.Scene {
     // Menu simples sobre uma estrada para manter identidade visual do jogo.
     this.drawBackground();
 
-    const panel = this.add.rectangle(480, 280, 620, 350, 0x05070b, 0.76);
-    panel.setStrokeStyle(2, 0x3fb0ff, 0.9);
+    const panel = this.add.rectangle(480, 255, 650, 330, 0x05070b, 0.82).setDepth(5);
+    panel.setStrokeStyle(2, 0x69bfff, 0.9);
+
+    const titleGlow = this.add.rectangle(480, 154, 540, 84, 0x66d1ff, 0.08).setDepth(6);
+    titleGlow.setStrokeStyle(1, 0x66d1ff, 0.18);
 
     this.titleText = this.add.text(480, 155, "", {
-      fontSize: "66px",
+      fontSize: "58px",
       color: "#66d1ff",
       fontStyle: "bold",
       stroke: "#0a1f33",
-      strokeThickness: 6
-    }).setOrigin(0.5);
+      strokeThickness: 7
+    }).setOrigin(0.5).setDepth(7);
 
-    this.subtitle = this.add.text(480, 225, "", {
-      fontSize: "20px",
-      color: "#cdefff",
-      letterSpacing: 2
-    }).setOrigin(0.5);
-
-    this.startText = this.add.text(480, 305, "", {
-      fontSize: "30px",
-      color: "#ffffff",
-      backgroundColor: "#14608a",
-      padding: { left: 20, right: 20, top: 10, bottom: 10 }
-    }).setOrigin(0.5);
-    this.startText.setInteractive({ useHandCursor: true });
-    this.startText.on("pointerover", () => this.startText.setStyle({ backgroundColor: "#1f7db0" }));
-    this.startText.on("pointerout", () => this.startText.setStyle({ backgroundColor: "#14608a" }));
-    this.startText.on("pointerdown", () => this.startGame());
-
-    this.langHintText = this.add.text(480, 366, "", {
+    this.subtitle = this.add.text(480, 222, "", {
       fontSize: "19px",
-      color: "#d7ebff"
-    }).setOrigin(0.5);
+      color: "#cdefff",
+      align: "center",
+      wordWrap: { width: 540 }
+    }).setOrigin(0.5).setDepth(7);
 
-    this.langCurrentText = this.add.text(480, 408, "", {
-      fontSize: "18px",
+    this.startButton = this.add.rectangle(480, 305, 300, 56, 0x14608a, 1).setDepth(7);
+    this.startButton.setStrokeStyle(2, 0xbbe6ff, 0.9);
+    this.startText = this.add.text(480, 305, "", {
+      fontSize: "28px",
+      color: "#ffffff",
+      fontStyle: "bold"
+    }).setOrigin(0.5).setDepth(8);
+
+    this.startButton.setInteractive({ useHandCursor: true });
+    this.startButton.on("pointerover", () => this.setStartButtonHover(true));
+    this.startButton.on("pointerout", () => this.setStartButtonHover(false));
+    this.startButton.on("pointerdown", () => this.startGame());
+
+    this.langHintText = this.add.text(480, 371, "", {
+      fontSize: "17px",
+      color: "#d7ebff"
+    }).setOrigin(0.5).setDepth(7);
+
+    this.langPill = this.add.rectangle(480, 414, 190, 34, 0x0d2336, 0.92).setDepth(7);
+    this.langPill.setStrokeStyle(1, 0x69bfff, 0.75);
+
+    this.langCurrentText = this.add.text(480, 414, "", {
+      fontSize: "17px",
       color: "#b6d9ff"
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setDepth(8);
 
     this.tweens.add({
-      targets: this.startText,
-      scale: { from: 1, to: 1.04 },
-      alpha: { from: 1, to: 0.75 },
-      duration: 700,
+      targets: this.startButton,
+      scale: { from: 1, to: 1.035 },
+      duration: 760,
       yoyo: true,
       repeat: -1
     });
@@ -64,27 +72,38 @@ export class MenuScene extends Phaser.Scene {
   }
 
   drawBackground() {
-    // Fundo desenhado por codigo: estrada, faixas e silhueta do carro.
+    // Fundo desenhado por codigo: estrada, faixas e carro real do jogo.
     const g = this.add.graphics();
-    g.fillGradientStyle(0x0a111c, 0x0a111c, 0x15263d, 0x15263d, 1);
+    g.fillGradientStyle(0x09111c, 0x09111c, 0x172b3f, 0x172b3f, 1);
     g.fillRect(0, 0, 960, 540);
 
-    g.fillStyle(0x232323, 1);
-    g.fillRect(200, 0, 560, 540);
+    g.fillStyle(0x121820, 0.55);
+    g.fillRect(0, 0, 960, 540);
 
-    g.fillStyle(0xffffff, 0.2);
+    g.fillStyle(0x242424, 1);
+    g.fillRect(190, 0, 580, 540);
+
+    g.fillStyle(0x3a3a3a, 1);
+    g.fillRect(190, 0, 22, 540);
+    g.fillRect(748, 0, 22, 540);
+
+    g.fillStyle(0xf1c40f, 0.92);
+    g.fillRect(210, 0, 4, 540);
+    g.fillRect(746, 0, 4, 540);
+
+    g.fillStyle(0xffffff, 0.18);
     g.fillRect(382, 0, 8, 540);
     g.fillRect(570, 0, 8, 540);
 
     for (let i = 0; i < 9; i += 1) {
-      const y = i * 80;
-      this.add.rectangle(386, y, 6, 45, 0xffffff, 0.55);
-      this.add.rectangle(574, y + 35, 6, 45, 0xffffff, 0.55);
+      const y = i * 78;
+      this.add.rectangle(386, y, 6, 42, 0xffffff, 0.48).setDepth(1);
+      this.add.rectangle(574, y + 35, 6, 42, 0xffffff, 0.48).setDepth(1);
     }
 
-    this.add.circle(430, 445, 120, 0x66d1ff, 0.14);
-    this.add.circle(530, 445, 120, 0x66d1ff, 0.14);
-    this.add.rectangle(480, 445, 120, 52, 0x0f2b45, 0.95).setStrokeStyle(2, 0x66d1ff, 0.8);
+    this.add.rectangle(480, 492, 260, 34, 0x66d1ff, 0.07).setDepth(2);
+    this.menuCar = this.add.sprite(480, 462, "carroSprite", 0).setScale(0.13).setDepth(3);
+    this.menuCar.setOrigin(0.324, 0.5);
   }
 
   refreshTexts() {
@@ -97,6 +116,23 @@ export class MenuScene extends Phaser.Scene {
     this.startText.setText(dict.menuStart);
     this.langHintText.setText(dict.menuLang);
     this.langCurrentText.setText(`${dict.menuCurrentLang}: ${lang.toUpperCase()}`);
+
+    this.fitText(this.titleText, 560);
+    this.fitText(this.subtitle, 540);
+    this.fitText(this.startText, 250);
+    this.fitText(this.langHintText, 520);
+    this.fitText(this.langCurrentText, 160);
+  }
+
+  fitText(textObject, maxWidth) {
+    textObject.setScale(1);
+    if (textObject.width <= maxWidth) return;
+    textObject.setScale(Math.max(0.72, maxWidth / textObject.width));
+  }
+
+  setStartButtonHover(isHovering) {
+    this.startButton.setFillStyle(isHovering ? 0x1f7db0 : 0x14608a, 1);
+    this.startButton.setStrokeStyle(2, isHovering ? 0xffffff : 0xbbe6ff, 0.95);
   }
 
   update() {
