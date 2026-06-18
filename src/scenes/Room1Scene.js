@@ -25,7 +25,7 @@ export class Room1Scene extends BaseRoomScene {
       playerLanePressurePhaseBoost: 0.08,
       playerLanePressureLevelBoost: 0.04,
       maxPlayerLanePressureChance: 0.76,
-      maxLaneIdleMs: 3400,
+      maxLaneIdleMs: 2200,
       truckChance: 0.10,
       coinSpawnDelay: 1300,
       coinScore: 30,

@@ -29,9 +29,10 @@ export class BaseRoomScene extends Phaser.Scene {
     this.createTrackBackground();
     this.createTrackLimits();
 
-    this.player = this.physics.add.sprite(this.lanes[this.currentLane], 450, "carroSprite").setDepth(10).setScale(0.15);    
+    this.player = this.physics.add.sprite(this.lanes[this.currentLane], 450, "carroSprite").setDepth(10).setScale(0.15);
+    this.player.setOrigin(0.324, 0.5);
     this.player.setCollideWorldBounds(true);
-    this.setBodyBox(this.player, 0.52, 0.74);
+    this.setBodyBox(this.player, 0.58, 0.82);
 
     if (!this.anims.exists("luzesPlayer")) {
       this.anims.create({
@@ -510,6 +511,11 @@ export class BaseRoomScene extends Phaser.Scene {
       .filter((lane) => now - this.laneLastObstacleTime[lane] > threshold);
   }
 
+  getWaveLaneAge(wave) {
+    const now = this.time.now;
+    return Math.max(...wave.map((lane) => now - this.laneLastObstacleTime[lane]));
+  }
+
   createObstacleAtLane(lane, waveSize) {
     const isTruck = waveSize === 1 && Phaser.Math.FloatBetween(0, 1) < (this.cfg.truckChance ?? 0.12);
     const obstacle = this.obstacles.create(this.lanes[lane], -70, "taxiSprite");
@@ -548,7 +554,8 @@ export class BaseRoomScene extends Phaser.Scene {
     const staleLanes = this.getStaleLanes();
     const staleWaves = candidates.filter((wave) => staleLanes.some((lane) => wave.includes(lane)));
     if (staleWaves.length > 0) {
-      candidates = staleWaves;
+      const oldestAge = Math.max(...staleWaves.map((wave) => this.getWaveLaneAge(wave)));
+      candidates = staleWaves.filter((wave) => this.getWaveLaneAge(wave) === oldestAge);
     }
 
     const pressureWaves = candidates.filter((wave) => wave.includes(this.currentLane));
