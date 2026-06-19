@@ -40,7 +40,6 @@ export class BaseRoomScene extends Phaser.Scene {
     // a parte visivel do carro no meio da pista.
     this.player.setOrigin(0.324, 0.5);
     this.player.setCollideWorldBounds(true);
-    // Hitbox um pouco menor que o desenho para a colisao parecer justa.
     this.setBodyBox(this.player, 0.58, 0.82);
 
     if (!this.anims.exists("luzesPlayer")) {
